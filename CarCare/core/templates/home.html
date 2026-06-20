@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ---------------- THEME CONFIG ---------------- */
+:root {
+    --bg-dark: #0b0e14;
+    --bg-card: #151a23;
+    --accent: #00f2ff;       /* Electric Cyan */
+    --accent-glow: rgba(0, 242, 255, 0.4);
+    --text-main: #ffffff;
+    --text-muted: #9ca3af;
+    --gradient: linear-gradient(135deg, #00f2ff 0%, #0061ff 100%);
+}
+
+* {
+    margin: 0; padding: 0; box-sizing: border-box;
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    overflow-x: hidden;
+}
+
+/* ---------------- NAVBAR ---------------- */
+.nav-container {
+    position: fixed; top: 0; left: 0; width: 100%;
+    padding: 20px 5%; display: flex; justify-content: space-between; align-items: center;
+    background: rgba(11, 14, 20, 0.8); backdrop-filter: blur(12px);
+    z-index: 100; border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.logo {
+    font-size: 24px; font-weight: 700; letter-spacing: -1px;
+    display: flex; align-items: center; gap: 10px;
+}
+.logo i { color: var(--accent); filter: drop-shadow(0 0 10px var(--accent)); }
+
+.nav-menu { display: flex; gap: 30px; align-items: center; }
+.nav-link { text-decoration: none; color: var(--text-muted); font-weight: 500; transition: 0.3s; }
+.nav-link:hover { color: var(--text-main); }
+
+.btn-auth {
+    padding: 10px 24px; border-radius: 4px; font-weight: 600; text-decoration: none;
+    font-size: 14px; transition: 0.3s; border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05); color: white;
+}
+.btn-auth:hover { background: white; color: black; }
+
+.btn-accent {
+    background: var(--accent); color: #000; border: none;
+    box-shadow: 0 0 20px var(--accent-glow);
+}
+.btn-accent:hover { transform: translateY(-2px); box-shadow: 0 0 30px var(--accent-glow); background: #fff; }
+
+/* ---------------- HERO SECTION ---------------- */
+.hero-wrapper {
+    min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr;
+    align-items: center; padding: 0 5%; position: relative;
+    overflow: hidden;
+}
+
+/* Abstract Background Shapes */
+.glow-spot {
+    position: absolute; width: 500px; height: 500px; background: var(--accent);
+    filter: blur(150px); opacity: 0.15; border-radius: 50%; z-index: -1;
+}
+.glow-1 { top: -100px; right: -100px; }
+.glow-2 { bottom: -100px; left: -100px; }
+
+.hero-text h1 {
+    font-size: 72px; line-height: 1.05; margin-bottom: 25px;
+    background: -webkit-linear-gradient(#fff, #9ca3af);
+    background: linear-gradient(#fff, #9ca3af);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+.hero-text p {
+    font-size: 18px; color: var(--text-muted); max-width: 500px;
+    margin-bottom: 40px; line-height: 1.6;
+}
+
+.hero-stats {
+    display: flex; gap: 40px; border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 30px; margin-top: 40px;
+}
+.stat-item h3 { font-size: 32px; color: var(--accent); margin-bottom: 5px; }
+.stat-item p { font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+/* Hero Image & Floating Card */
+.hero-visual { position: relative; display: flex; justify-content: center; }
+.hero-car {
+    width: 120%; max-width: 800px; transform: translateX(50px);
+    filter: drop-shadow(0 20px 40px rgba(0,0,0,0.5));
+    animation: floatCar 6s ease-in-out infinite;
+}
+
+@keyframes floatCar {
+    0%, 100% { transform: translateX(50px) translateY(0); }
+    50% { transform: translateX(50px) translateY(-20px); }
+}
+
+.float-status {
+    position: absolute; top: 20%; left: 0;
+    background: rgba(21, 26, 35, 0.8); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.1); padding: 20px;
+    border-radius: 16px; width: 220px;
+    animation: slideIn 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.status-row { display: flex; align-items: center; gap: 15px; margin-bottom: 10px; }
+.status-dot { width: 10px; height: 10px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 10px var(--accent); }
+.status-text { font-size: 14px; color: #fff; font-weight: 600; }
+.status-sub { font-size: 12px; color: var(--text-muted); margin-left: 25px; }
+
+/* ---------------- SERVICES GRID ---------------- */
+.features-section { padding: 100px 5%; }
+.section-head { text-align: center; margin-bottom: 60px; }
+.section-tag { color: var(--accent); text-transform: uppercase; letter-spacing: 2px; font-size: 12px; font-weight: 700; margin-bottom: 15px; display: block; }
+.section-head h2 { font-size: 42px; margin-bottom: 15px; }
+
+.bento-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px;
+}
+
+.bento-card {
+    background: var(--bg-card); border: 1px solid rgba(255,255,255,0.05);
+    padding: 35px; border-radius: 20px; position: relative; overflow: hidden;
+    transition: 0.3s;
+}
+.bento-card:hover {
+    border-color: var(--accent); transform: translateY(-5px);
+}
+.bento-card::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    transform: translateX(-100%); transition: 0.5s;
+}
+.bento-card:hover::before { transform: translateX(100%); transition: 1s; }
+
+.card-icon {
+    font-size: 32px; color: var(--text-white); margin-bottom: 20px;
+    background: rgba(255,255,255,0.05); width: 60px; height: 60px;
+    display: flex; align-items: center; justify-content: center; border-radius: 12px;
+}
+.bento-card h3 { font-size: 20px; margin-bottom: 10px; }
+.bento-card p { color: var(--text-muted); font-size: 15px; line-height: 1.5; }
+
+/* ---------------- CTA BANNER ---------------- */
+.cta-banner {
+    margin: 50px 5%; padding: 80px 50px; border-radius: 30px;
+    background: url('https://images.unsplash.com/photo-1618365269766-3b3209587dfd?q=80&w=2000&auto=format&fit=crop') center/cover;
+    position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between;
+}
+.cta-banner::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(90deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 100%);
+}
+.cta-text { position: relative; z-index: 1; max-width: 500px; }
+.cta-text h2 { font-size: 38px; margin-bottom: 15px; }
+.cta-btn { position: relative; z-index: 1; padding: 18px 45px; border-radius: 50px; background: white; color: black; font-weight: 700; text-decoration: none; transition: 0.3s; }
+.cta-btn:hover { background: var(--accent); }
+
+/* ---------------- RESPONSIVE ---------------- */
+@media (max-width: 900px) {
+    .hero-wrapper { grid-template-columns: 1fr; text-align: center; padding-top: 100px; }
+    .hero-text h1 { font-size: 48px; }
+    .hero-text p { margin: 0 auto 30px; }
+    .hero-stats { justify-content: center; }
+    .hero-visual { margin-top: 50px; }
+    .hero-car { width: 100%; transform: none; }
+    .bento-grid { grid-template-columns: 1fr; }
+    .cta-banner { flex-direction: column; text-align: center; gap: 30px; }
+}
+</style>
+
+<div class="glow-spot glow-1"></div>
+<div class="glow-spot glow-2"></div>
+
+<nav class="nav-container">
+    <div class="logo">
+        <i class="fa-solid fa-bolt-lightning"></i> CAR CARE KL
+    </div>
+    <div class="nav-menu">
+        <a href="{% url 'login' %}" class="btn-auth">Log In</a>
+        <a href="{% url 'register' %}" class="btn-auth btn-accent">Get Started</a>
+    </div>
+</nav>
+
+<section class="hero-wrapper">
+    <div class="hero-text">
+        <span style="color: var(--accent); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; display: block;">Next Gen Auto Care</span>
+        <h1>Reliable Mechanics.<br>Instant Response.</h1>
+        <p>Experience the future of car servicing. From AI-powered diagnostics to real-time technician tracking, we handle your breakdown so you can handle the road.</p>
+        
+        <div style="display: flex; gap: 15px; justify-content: flex-start;">
+            <a href="{% url 'register' %}" class="btn-auth btn-accent" style="padding: 16px 40px; font-size: 16px;">Book Service</a>
+            <a href="#features" class="btn-auth" style="padding: 16px 40px; font-size: 16px;">Learn More</a>
+        </div>
+
+        <div class="hero-stats">
+            <div class="stat-item">
+                <h3>15min</h3>
+                <p>Avg. Arrival</p>
+            </div>
+            <div class="stat-item">
+                <h3>5k+</h3>
+                <p>Happy Drivers</p>
+            </div>
+            <div class="stat-item">
+                <h3>24/7</h3>
+                <p>Emergency Support</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="hero-visual">
+        <div class="float-status">
+            <div class="status-row">
+                <div class="status-dot"></div>
+                <div class="status-text">Technician Assigned</div>
+            </div>
+            <div class="status-sub">Arriving in 12 mins...</div>
+            
+            <div style="margin-top: 15px; display: flex; align-items: center; gap: 10px;">
+                <div style="width: 35px; height: 35px; background: #333; border-radius: 50%; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-user-gear"></i></div>
+                <div>
+                    <div style="font-size: 12px; color: #fff;">Rahul K.</div>
+                    <div style="font-size: 10px; color: var(--text-muted);">Verified Pro</div>
+                </div>
+            </div>
+        </div>
+        
+        
+
+[Image of modern sports car]
+
+        <img src="https://pngimg.com/d/porsche_PNG10622.png" alt="Car" class="hero-car">
+    </div>
+</section>
+
+<section class="features-section" id="features">
+    <div class="section-head">
+        <span class="section-tag">Why Choose Us</span>
+        <h2>Complete Auto Solutions</h2>
+    </div>
+
+    <div class="bento-grid">
+        <div class="bento-card">
+            <div class="card-icon"><i class="fa-solid fa-satellite-dish"></i></div>
+            <h3>Live GPS Tracking</h3>
+            <p>Know exactly when help will arrive. Track your assigned mechanic in real-time on our interactive map.</p>
+        </div>
+        <div class="bento-card">
+            <div class="card-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+            <h3>Transparent Pricing</h3>
+            <p>No hidden fees. Get estimated costs before you book and pay securely online after the job is done.</p>
+        </div>
+        <div class="bento-card">
+            <div class="card-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <h3>SOS Emergency</h3>
+            <p>One-tap emergency button broadcasts your location to all nearby mechanics for instant rescue.</p>
+        </div>
+        <div class="bento-card">
+            <div class="card-icon"><i class="fa-solid fa-microchip"></i></div>
+            <h3>AI Diagnostics</h3>
+            <p>Not sure what's wrong? Our AI tool analyzes your symptoms and suggests the likely issue instantly.</p>
+        </div>
+        <div class="bento-card">
+            <div class="card-icon"><i class="fa-solid fa-folder-open"></i></div>
+            <h3>Digital Logbook</h3>
+            <p>Keep a permanent digital record of every service, repair, and part replacement for your vehicle.</p>
+        </div>
+        <div class="bento-card" style="background: linear-gradient(135deg, #151a23 0%, #0d3640 100%); border-color: var(--accent);">
+            <div class="card-icon" style="background: var(--accent); color: black;"><i class="fa-solid fa-arrow-right"></i></div>
+            <h3>Join as Technician</h3>
+            <p>Are you a mechanic? Join our network, get verified, and start receiving job requests today.</p>
+        </div>
+    </div>
+</section>
+
+<section class="cta-banner">
+    <div class="cta-text">
+        <h2>Don't Wait for a Breakdown.</h2>
+        <p style="color: rgba(255,255,255,0.8);">Download the app or sign up online to get peace of mind on every journey.</p>
+    </div>
+    <a href="{% url 'register' %}" class="cta-btn">Create Account</a>
+</section>
+
+{% endblock %}

@@ -1,0 +1,50 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <style>
+        body { font-family: Helvetica, sans-serif; color: #333; }
+        .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+        h1 { color: #2c3e50; margin-bottom: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background-color: #eee; padding: 10px; text-align: left; border-bottom: 2px solid #ddd; }
+        td { padding: 10px; border-bottom: 1px solid #eee; }
+        .summary { margin-top: 30px; text-align: right; font-size: 1.2rem; font-weight: bold; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; color: white; background: #999; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>CarCare Service Report</h1>
+        <p>Customer: {{ user.first_name }} {{ user.last_name }} ({{ user.username }})</p>
+        <p>Date Generated: {{ date|date:"F d, Y" }}</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Vehicle</th>
+                <th>Service Type</th>
+                <th>Status</th>
+                <th>Cost</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in services %}
+    <tr>
+        <td>{{ s.created_at|date:"M d, Y" }}</td>
+        <td>{{ s.vehicle.reg_number }}</td>
+        <td>{{ s.get_service_type_display }}</td>
+        <td>{{ s.status|title }}</td>
+        <td>Rs. {{ s.total_cost|default:"0.00" }}</td>
+    </tr>
+    {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="summary">
+        <p>Total Services: {{ total_services }}</p>
+        <p style="color: #27ae60;">Total Expenditure: Rs. {{ total_spent }}</p>
+    </div>
+</body>
+</html>

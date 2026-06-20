@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+    /* Fix for input fields in dark mode */
+    .invoice-card label {
+        color: #94a3b8; /* Light gray for labels */
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .invoice-card .form-control {
+        background-color: #0f172a !important; /* Darker input background */
+        border: 1px solid #334155 !important;
+        color: #ffffff !important; /* Forces typing text to be bright white */
+        padding: 12px 15px;
+    }
+
+    .invoice-card .form-control::placeholder {
+        color: #64748b !important; /* Makes placeholder text visible but dim */
+    }
+
+    .invoice-card .form-control:focus {
+        border-color: #38bdf8 !important; /* Neon blue focus border */
+        box-shadow: 0 0 15px rgba(56, 189, 248, 0.2) !important;
+        outline: none;
+    }
+
+    /* Fix for browser auto-fill hiding text */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover, 
+    input:-webkit-autofill:focus, 
+    input:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
+        -webkit-text-fill-color: #ffffff !important;
+        transition: background-color 5000s ease-in-out 0s;
+    }
+</style>
+
+<div class="container mt-5" style="max-width: 600px; color: white;">
+    <div class="card p-4 invoice-card" style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        
+        <div style="border-bottom: 1px solid #334155; margin-bottom: 25px; padding-bottom: 15px;">
+            <h2 class="mb-1" style="font-weight: 700; color: #38bdf8;"><i class="fas fa-file-invoice-dollar me-2"></i> Generate Invoice</h2>
+            <p style="color: #94a3b8; margin: 0;">Job Ref: #{{ job.id }} - {{ job.vehicle.model }}</p>
+        </div>
+        
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="mb-4">
+                <label>Service Charge (Labor) ₹</label>
+                <input type="number" name="labor_cost" class="form-control" placeholder="0.00" required>
+            </div>
+
+            <hr style="border-color: #334155; margin: 25px 0;">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <label style="margin: 0;">Parts Replaced</label>
+                <button type="button" class="btn btn-sm" style="background: rgba(56, 189, 248, 0.1); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);" onclick="addPartRow()">
+                    <i class="fas fa-plus"></i> Add Part
+                </button>
+            </div>
+
+            <div id="parts-container">
+                <div class="row mb-3">
+                    <div class="col-7">
+                        <input type="text" name="part_name[]" class="form-control" placeholder="Part Name (e.g. Brake Oil)">
+                    </div>
+                    <div class="col-5">
+                        <input type="number" name="part_cost[]" class="form-control" placeholder="Cost ₹">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn w-100 py-3 mt-4" style="background: #10b981; color: white; font-weight: 700; font-size: 1.1rem; border-radius: 8px; border: none; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
+                Send Bill to Customer <i class="fas fa-paper-plane ms-2"></i>
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+function addPartRow() {
+    var html = `
+        <div class="row mb-3">
+            <div class="col-7">
+                <input type="text" name="part_name[]" class="form-control" placeholder="Part Name">
+            </div>
+            <div class="col-5">
+                <input type="number" name="part_cost[]" class="form-control" placeholder="Cost ₹">
+            </div>
+        </div>`;
+    document.getElementById('parts-container').insertAdjacentHTML('beforeend', html);
+}
+</script>
+{% endblock %}

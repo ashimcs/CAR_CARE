@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+    /* --- LAYOUT STYLES --- */
+    .booking-wrapper { padding: 40px; min-height: 100vh; background: #f1f5f9; }
+    
+    .unified-card {
+        background: white; border-radius: 20px;
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+        overflow: hidden; max-width: 1400px; margin: 0 auto;
+        display: flex; flex-direction: column;
+    }
+
+    /* MAP */
+    #map { 
+        height: 350px !important; width: 100%; 
+        border-radius: 12px; border: 2px solid #cbd5e1; z-index: 1;
+        background: #e2e8f0; margin-bottom: 15px;
+    }
+
+    /* GRID SYSTEM */
+    .dashboard-body { display: flex; flex-wrap: wrap; }
+    .panel { padding: 30px; border-right: 1px solid #e2e8f0; flex: 1; min-width: 300px; }
+    .panel:last-child { border-right: none; }
+
+    /* TECHNICIAN LIST */
+    .tech-list-scroll { height: 400px; overflow-y: auto; padding-right: 5px; }
+    .tech-option {
+        display: flex; align-items: center; padding: 15px; margin-bottom: 10px;
+        border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer; transition: 0.2s;
+    }
+    .tech-option:hover { border-color: #3b82f6; background: #eff6ff; }
+    .tech-option.active-tech { border: 2px solid #10b981; background: #f0fdf4; }
+    
+    .tech-avatar {
+        width: 45px; height: 45px; background: #3b82f6; color: white;
+        border-radius: 10px; display: flex; align-items: center; justify-content: center;
+        font-weight: bold; margin-right: 15px;
+    }
+
+    /* FORM ELEMENTS */
+    .district-selector {
+        padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;
+        font-weight: 600; color: #334155; margin-left: 10px; cursor: pointer;
+    }
+    .form-label { font-size: 0.8rem; font-weight: bold; color: #64748b; display: block; margin-bottom: 8px; }
+    .form-select, .form-input, .form-textarea {
+        width: 100%; padding: 12px; margin-bottom: 20px;
+        border-radius: 8px; border: 1px solid #cbd5e1; outline: none;
+        font-family: 'Inter', sans-serif;
+    }
+    .form-select:focus, .form-input:focus, .form-textarea:focus { border-color: #3b82f6; }
+
+    .btn-action {
+        width: 100%; padding: 15px; background: #3b82f6; color: white;
+        border: none; border-radius: 10px; font-weight: bold; font-size: 1rem;
+        cursor: pointer; transition: 0.3s;
+    }
+    .btn-action:hover { background: #2563eb; transform: translateY(-2px); }
+    .btn-gps { background: white; border: 1px solid #3b82f6; color: #3b82f6; }
+    .btn-gps:hover { background: #eff6ff; }
+</style>
+
+<div class="booking-wrapper">
+    <form method="post" id="mainBookingForm" class="unified-card">
+        {% csrf_token %}
+        <input type="hidden" name="location" id="final_location_input">
+        <input type="hidden" name="technician_id" id="selected_tech_id">
+
+        <div style="padding: 25px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h2 style="margin:0; color:#0f172a;">Book Service</h2>
+                <p style="margin:0; color:#64748b;">Current Area: <b>{{ selected_district }}</b></p>
+            </div>
+            <div style="background:#f1f5f9; padding:8px 20px; border-radius:30px; font-weight:bold; color:#64748b; font-size:0.9rem;">
+                {{ technicians.count }} Technicians Found
+            </div>
+        </div>
+
+        <div class="dashboard-body">
+            
+            <div class="panel">
+                <h4 style="color:#64748b; margin-top:0; margin-bottom:20px;">1. LOCATION</h4>
+                
+                <label class="form-label">ADDRESS / LANDMARK</label>
+                <input type="text" id="manual_address" class="form-input" placeholder="e.g. Near Central Station, Main Road" required>
+                
+                <div id="map"></div> 
+
+                <button type="button" class="btn-action btn-gps" onclick="locateUser()">
+                    <i class="fas fa-crosshairs"></i> Auto-Detect My Location
+                </button>
+            </div>
+
+            <div class="panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h4 style="color:#64748b; margin:0;">2. TECHNICIAN</h4>
+                    <select class="district-selector" onchange="window.location.href='?district='+this.value">
+                        {% for dist in kerala_districts %}
+                            <option value="{{ dist }}" {% if dist == selected_district %}selected{% endif %}>{{ dist }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="tech-list-scroll">
+                    {% if technicians %}
+                        {% for tech in technicians %}
+                        <div class="tech-option" id="tech-card-{{ tech.id }}" onclick="selectTechnician('{{ tech.id }}')">
+                            <div class="tech-avatar">{{ tech.username|slice:":1"|upper }}</div>
+                            <div style="flex:1;">
+                                <div style="font-weight:bold; color:#0f172a;">{{ tech.username|title }}</div>
+                                <div style="font-size:0.8rem; color:#64748b;">{{ tech.garage_name|default:"Mechanic" }}</div>
+                                <div style="font-size:0.75rem; color:#10b981;">● Online in {{ tech.district }}</div>
+                            </div>
+                            <i class="fas fa-check-circle" id="check-{{ tech.id }}" style="color:#cbd5e1; font-size:1.2rem;"></i>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div style="text-align:center; padding:40px; color:#64748b; opacity:0.7;">
+                            <i class="fas fa-search-location fa-3x" style="margin-bottom:15px;"></i>
+                            <p>No active technicians found in {{ selected_district }}.</p>
+                            <a href="?district=Ernakulam" style="color:#3b82f6; font-weight:bold; text-decoration:none;">Search Nearby?</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="panel">
+                <h4 style="color:#64748b; margin-top:0; margin-bottom:20px;">3. SERVICE DETAILS</h4>
+                
+                <label class="form-label">SELECT VEHICLE</label>
+                <select name="vehicle" class="form-select" required>
+                    {% for v in form.fields.vehicle.queryset %}
+                        <option value="{{ v.id }}">{{ v.make }} {{ v.model }} ({{ v.reg_number }})</option>
+                    {% empty %}
+                        <option disabled selected>No vehicles added</option>
+                    {% endfor %}
+                </select>
+
+                <label class="form-label">SERVICE TYPE</label>
+                <select name="service_type" class="form-select" required>
+                    <option value="" disabled selected>Choose Service...</option>
+                    <optgroup label="Roadside Assistance">
+                        <option value="fuel">Fuel Delivery</option>
+                        <option value="jump_start">Jump Start</option>
+                        <option value="towing">Towing Service</option>
+                        <option value="lockout">Key Lockout</option>
+                        <option value="emergency">Emergency SOS</option>
+                    </optgroup>
+                    <optgroup label="Garage Services">
+                        <option value="repair">Mechanical Repair</option>
+                        <option value="general">General Service</option>
+                        <option value="cleaning">Car Wash</option>
+                    </optgroup>
+                </select>
+
+                <label class="form-label">DESCRIPTION</label>
+                <textarea name="description" class="form-textarea" rows="4" placeholder="Briefly describe the issue..." required></textarea>
+
+                <button type="submit" class="btn-action" style="margin-top:auto;">
+                    <i class="fas fa-paper-plane me-2"></i> Confirm Booking
+                </button>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+<script>
+    // --- 1. DISTRICT COORDINATES FOR MAP ---
+    const districtCoords = {
+        'alappuzha': [9.4981, 76.3388], 'ernakulam': [9.9816, 76.2999], 'idukki': [9.8494, 76.9809],
+        'kannur': [11.8745, 75.3704], 'kasaragod': [12.5102, 74.9852], 'kollam': [8.8932, 76.6141],
+        'kottayam': [9.5916, 76.5222], 'kozhikode': [11.2588, 75.7804], 'malappuram': [11.0510, 76.0711],
+        'palakkad': [10.7867, 76.6548], 'pathanamthitta': [9.2648, 76.7870], 'pta': [9.2648, 76.7870],
+        'thiruvananthapuram': [8.5241, 76.9366], 'tvm': [8.5241, 76.9366], 'thrissur': [10.5276, 76.2144], 
+        'wayanad': [11.6854, 76.1320]
+    };
+
+    let map, marker, currentLat = 9.9312, currentLng = 76.2673;
+
+    // --- 2. INITIALIZE MAP ---
+    document.addEventListener("DOMContentLoaded", function() {
+        // Center map on selected district
+        let target = "{{ selected_district|default:''|lower|cut:' ' }}"; 
+        if (districtCoords[target]) {
+            currentLat = districtCoords[target][0];
+            currentLng = districtCoords[target][1];
+        }
+
+        if (document.getElementById('map')) {
+            map = L.map('map').setView([currentLat, currentLng], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+            marker = L.marker([currentLat, currentLng], {draggable: true}).addTo(map);
+            
+            // Listeners
+            marker.on('dragend', function(e) { let p = marker.getLatLng(); updateCoords(p.lat, p.lng); });
+            map.on('click', function(e) { marker.setLatLng(e.latlng); updateCoords(e.latlng.lat, e.latlng.lng); });
+            
+            updateCoords(currentLat, currentLng);
+        }
+    });
+
+    function updateCoords(lat, lng) {
+        currentLat = lat.toFixed(6); currentLng = lng.toFixed(6);
+    }
+
+    // --- 3. GPS LOGIC ---
+    function locateUser() {
+        if (!navigator.geolocation) { alert("GPS not supported"); return; }
+        
+        navigator.geolocation.getCurrentPosition(function(pos) {
+            let lat = pos.coords.latitude, lng = pos.coords.longitude;
+            marker.setLatLng([lat, lng]); map.setView([lat, lng], 15); updateCoords(lat, lng);
+            
+            // Reverse Geocode
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+                .then(r => r.json()).then(d => { if(d.display_name) document.getElementById('manual_address').value = d.display_name; });
+        });
+    }
+
+    // --- 4. SELECTION LOGIC ---
+    function selectTechnician(id) {
+        // Visual Selection
+        document.querySelectorAll('.tech-option').forEach(el => {
+            el.classList.remove('active-tech');
+            el.querySelector('.fas.fa-check-circle').style.color = '#cbd5e1';
+        });
+        document.getElementById('tech-card-'+id).classList.add('active-tech');
+        document.getElementById('check-'+id).style.color = '#10b981';
+        
+        // Set Hidden Input
+        document.getElementById('selected_tech_id').value = id;
+    }
+
+    // --- 5. SIMPLE SUBMIT (No Payment) ---
+    document.getElementById('mainBookingForm').onsubmit = function(e) {
+        // Validate Address
+        let addr = document.getElementById('manual_address').value;
+        if(!addr) { 
+            e.preventDefault();
+            alert("Please enter a location or landmark."); 
+            return false; 
+        }
+        
+        // Combine address + GPS for backend
+        document.getElementById('final_location_input').value = addr + ` [GPS: ${currentLat}, ${currentLng}]`;
+        
+        // Allow form to submit normally
+        return true; 
+    };
+</script>
+{% endblock %}

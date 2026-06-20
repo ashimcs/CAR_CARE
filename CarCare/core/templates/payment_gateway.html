@@ -1,0 +1,454 @@
+{% extends 'base.html' %}
+{% block content %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+  /* --- 1. OVERRIDE BASE LAYOUT --- */
+  .sidebar, .nav-links, .brand, .sos-wrapper, .top-bar, header, .navbar, .footer { 
+    display: none !important; 
+  }
+  
+  .wrapper { 
+    display: block !important; 
+    height: 100vh !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  .main-content {
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* --- 2. PAGE STYLING --- */
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #333;
+  }
+
+  .payment-container {
+    max-width: 480px;
+    width: 100%;
+    margin: 20px auto;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    overflow: hidden;
+    position: relative;
+    z-index: 10;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    padding: 24px;
+    color: white;
+    text-align: center;
+  }
+
+  .header h1 { margin: 0 0 8px 0; font-size: 24px; font-weight: 600; }
+  .header p { margin: 0; opacity: 0.9; font-size: 14px; }
+
+  .invoice-section {
+    padding: 24px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .invoice-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 14px;
+    color: #333;
+  }
+
+  .invoice-row.total {
+    font-weight: 600; font-size: 18px; margin-top: 16px;
+    padding-top: 16px; border-top: 2px solid #ddd; color: #3b82f6;
+  }
+
+  .payment-modes { padding: 24px; }
+  .payment-modes h3 { margin: 0 0 16px 0; font-size: 16px; color: #333; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+  .tab {
+    flex: 1; padding: 12px; border: 2px solid #e0e0e0;
+    background: white; border-radius: 8px; cursor: pointer;
+    text-align: center; font-size: 14px; font-weight: 500;
+    transition: all 0.3s ease; color: #555;
+  }
+  .tab:hover { border-color: #3b82f6; background: #f8f9ff; }
+  .tab.active {
+    border-color: #3b82f6; background: #eff6ff; color: #3b82f6; font-weight: 600;
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #333; }
+  .form-group input {
+    width: 100%; padding: 12px; border: 2px solid #e0e0e0;
+    border-radius: 8px; font-size: 14px; box-sizing: border-box;
+  }
+  .form-group input:focus { outline: none; border-color: #3b82f6; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* UPI Apps */
+  .upi-apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+  .upi-app {
+    padding: 10px 5px; border: 1px solid #e0e0e0; border-radius: 8px;
+    text-align: center; cursor: pointer; transition: all 0.3s ease; background: white;
+  }
+  .upi-app:hover { border-color: #3b82f6; background: #f0f9ff; transform: translateY(-2px); }
+  .icon-box { width: 32px; height: 32px; margin: 0 auto 5px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+  .bg-gpay { background: #ea4335; }
+  .bg-phonepe { background: #5f259f; }
+  .bg-paytm { background: #00baf2; }
+  .bg-bhim { background: #f26d21; }
+  .upi-app span { display: block; font-size: 11px; color: #666; }
+
+  .pay-button {
+    width: 100%; padding: 16px; background: #3b82f6; color: white;
+    border: none; border-radius: 8px; font-size: 16px; font-weight: 600;
+    cursor: pointer; transition: transform 0.2s ease; margin-top: 16px;
+  }
+  .pay-button:hover { background: #2563eb; transform: translateY(-2px); }
+
+  .cancel-link { display: block; text-align: center; margin-top: 16px; color: #666; text-decoration: none; font-size: 14px; }
+
+  /* --- PAYMENT OVERLAY (COIN ANIMATION) --- */
+  .payment-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.98) 100%);
+    backdrop-filter: blur(8px);
+    display: none; justify-content: center; align-items: center; z-index: 9999;
+  }
+  .payment-overlay.active { display: flex; }
+
+  .payment-modal {
+    background: white; border-radius: 20px; padding: 50px 40px;
+    text-align: center; max-width: 460px; width: 90%;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6); position: relative; overflow: hidden;
+  }
+
+  /* COIN ANIMATION */
+  .loader-container {
+    position: relative; width: 100%; height: 200px; margin: 0 auto 30px;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+
+  .payment-coin {
+    width: 90px; height: 90px; position: absolute; left: -120px;
+    /* Animation triggers when class 'animate' is added */
+    opacity: 0; 
+  }
+  
+  .payment-coin.animate {
+    animation: coinJourney 3.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+
+  @keyframes coinJourney {
+    0% { left: -120px; transform: translateY(0) scale(0.7) rotateY(0deg); opacity: 0; }
+    10% { opacity: 1; }
+    50% { left: 42%; transform: translateY(-25px) scale(1.05) rotateY(540deg); }
+    100% { left: calc(100% + 150px); transform: translateY(0) scale(1.6) rotateY(1080deg); opacity: 0; }
+  }
+
+  .coin-inner {
+    width: 100%; height: 100%; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #fff9c4 0%, #ffd700 30%, #ffb300 70%, #ff8f00 100%);
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.8), inset 0 -15px 25px rgba(0,0,0,0.15);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .coin-symbol { font-size: 48px; font-weight: 900; color: #ff6b00; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+
+  /* Sparkles */
+  .sparkle {
+    position: absolute; width: 6px; height: 6px; background: #fff; border-radius: 50%;
+    animation: sparkleFloat 1.2s ease-in-out infinite;
+  }
+  .sparkle:nth-child(1) { top: 5%; left: 15%; animation-delay: 0s; }
+  .sparkle:nth-child(2) { top: 85%; left: 75%; animation-delay: 0.2s; }
+  @keyframes sparkleFloat { 0%, 100% { transform: scale(0); opacity: 0; } 50% { transform: scale(2); opacity: 1; } }
+
+  /* Speed Lines */
+  .speed-line {
+    position: absolute; height: 3px; background: linear-gradient(90deg, transparent 0%, rgba(255, 215, 0, 0.6) 40%, transparent 100%);
+    animation: speedLineMove 0.6s linear infinite; opacity: 0;
+  }
+  .speed-line:nth-child(1) { top: 35%; width: 80px; animation-delay: 0s; }
+  .speed-line:nth-child(2) { top: 50%; width: 100px; animation-delay: 0.15s; }
+  @keyframes speedLineMove { 0% { left: -150px; opacity: 0; } 30% { opacity: 1; } 100% { left: calc(100% + 150px); opacity: 0; } }
+
+  /* SUCCESS CHECKMARK */
+  .success-checkmark-container {
+    width: 140px; height: 140px; position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%); display: none; z-index: 20;
+  }
+  .success-checkmark-container.show {
+    display: block; animation: successZoomRotate 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes successZoomRotate {
+    0% { transform: translate(-50%, -50%) scale(0) rotate(-180deg); opacity: 0; }
+    100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+  }
+
+  .success-circle-outer {
+    width: 140px; height: 140px; border-radius: 50%;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 15px 40px rgba(16, 185, 129, 0.5);
+  }
+  .success-checkmark-svg {
+    width: 70px; height: 70px; stroke: white; stroke-width: 7;
+    stroke-linecap: round; stroke-linejoin: round; fill: none;
+    stroke-dasharray: 110; stroke-dashoffset: 110;
+    animation: drawSuccessCheckmark 0.9s ease-out 0.4s forwards;
+  }
+  @keyframes drawSuccessCheckmark { to { stroke-dashoffset: 0; } }
+
+  .payment-status { font-size: 17px; font-weight: 600; color: #1e293b; margin-top: 15px; }
+  .transaction-id { background: #f8f9fa; padding: 12px; border-radius: 8px; margin: 16px 0; font-family: monospace; font-size: 14px; color: #333; }
+
+  /* ERROR VIEW */
+  .failed-message { display: none; }
+  .failed-message.show { display: block; }
+  .error-icon { width: 80px; height: 80px; background: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+  .error-icon i { color: white; font-size: 40px; }
+
+  /* RAZORPAY POPUP */
+  .razorpay-popup {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7); z-index: 10000;
+    display: none; justify-content: center; align-items: center;
+    backdrop-filter: blur(4px);
+  }
+  .razorpay-popup.active { display: flex; }
+  .razorpay-container {
+    background: white; width: 420px; max-width: 90%; border-radius: 12px;
+    overflow: hidden; animation: popupSlideIn 0.3s ease-out;
+  }
+  @keyframes popupSlideIn { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  
+  .razorpay-header { background: #2b3954; color: white; padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; }
+  .razorpay-body { padding: 24px; }
+  .razorpay-amount { background: #f1f5f9; padding: 18px; text-align: center; border-radius: 8px; margin-bottom: 24px; }
+  .razorpay-amount-value { font-size: 28px; font-weight: 700; color: #0f172a; }
+  
+  .razorpay-method {
+    padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 8px;
+    margin-bottom: 12px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: 0.3s;
+  }
+  .razorpay-method:hover { background: #f8fafc; border-color: #3b82f6; }
+
+  #autoSubmitForm { display: none; }
+</style>
+
+<div class="payment-container">
+  <div class="header">
+    <h1>CarCare Service</h1>
+    <p>Secure Payment Gateway</p>
+  </div>
+
+  <div class="invoice-section">
+    <div class="invoice-row"><span>Request ID</span><strong>#REQ-{{ job.id }}</strong></div>
+    <div class="invoice-row"><span>Vehicle</span><strong>{{ job.vehicle.reg_number }}</strong></div>
+    <div class="invoice-row"><span>Labor Fees</span><span>₹{{ job.labor_cost }}</span></div>
+    <div class="invoice-row"><span>Parts & Tax</span><span>₹{{ job.parts_cost }}</span></div>
+    <div class="invoice-row total"><span>Total</span><span>₹{{ job.total_cost }}</span></div>
+  </div>
+
+  <div class="payment-modes">
+    <h3>Select Payment Mode</h3>
+    <div class="tabs">
+      <div class="tab active" data-tab="card">Card</div>
+      <div class="tab" data-tab="upi">UPI</div>
+    </div>
+
+    <div class="tab-content active" id="card-content">
+      <form id="card-form">
+        <div class="form-group"><label>Card Number</label><input type="text" placeholder="0000 0000 0000 0000" maxlength="19" required></div>
+        <div class="form-row">
+          <div class="form-group"><label>Expiry</label><input type="text" placeholder="MM/YY" maxlength="5" required></div>
+          <div class="form-group"><label>CVV</label><input type="password" placeholder="123" maxlength="3" required></div>
+        </div>
+        <button type="submit" class="pay-button">Pay ₹{{ job.total_cost }}</button>
+      </form>
+    </div>
+
+    <div class="tab-content" id="upi-content">
+      <form id="upi-form">
+        <div class="form-group"><label>Enter UPI ID</label><input type="text" placeholder="username@oksbi" required></div>
+        <p style="text-align: center; color: #888; font-size: 13px; margin: 15px 0;">Or pay using app</p>
+        <div class="upi-apps">
+          <div class="upi-app" onclick="openRazorpayPopup()"><div class="icon-box bg-phonepe"><i class="fas fa-rupee-sign"></i></div><span>PhonePe</span></div>
+          <div class="upi-app" onclick="openRazorpayPopup()"><div class="icon-box bg-paytm"><i class="fas fa-wallet"></i></div><span>Paytm</span></div>
+          <div class="upi-app" onclick="openRazorpayPopup()"><div class="icon-box bg-gpay"><i class="fab fa-google"></i></div><span>GPay</span></div>
+          <div class="upi-app" onclick="openRazorpayPopup()"><div class="icon-box bg-bhim"><i class="fas fa-university"></i></div><span>BHIM</span></div>
+        </div>
+        <button type="submit" class="pay-button">Pay ₹{{ job.total_cost }}</button>
+      </form>
+    </div>
+    <a href="{% url 'dashboard' %}" class="cancel-link">Cancel Payment</a>
+  </div>
+</div>
+
+<div class="razorpay-popup" id="razorpayPopup">
+  <div class="razorpay-container">
+    <div class="razorpay-header">
+      <h3>CarCare Payment</h3>
+      <div class="razorpay-close" onclick="closeRazorpayPopup()">✕</div>
+    </div>
+    <div class="razorpay-body">
+      <div class="razorpay-amount">
+        <div class="razorpay-amount-label">Total Payable</div>
+        <div class="razorpay-amount-value">₹{{ job.total_cost }}</div>
+      </div>
+      <div class="razorpay-method" onclick="startProcessing()">
+        <i class="fas fa-credit-card" style="color:#3b82f6;"></i><span>Card Payment</span>
+      </div>
+      <div class="razorpay-method" onclick="startProcessing()">
+        <i class="fas fa-mobile-alt" style="color:#3b82f6;"></i><span>UPI / QR Code</span>
+      </div>
+      <div class="razorpay-method" onclick="startProcessing()">
+        <i class="fas fa-university" style="color:#3b82f6;"></i><span>Net Banking</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="payment-overlay" id="paymentOverlay">
+  <div class="payment-modal">
+    
+    <div id="processingView">
+      <div class="loader-container">
+        <div class="payment-coin" id="paymentCoin">
+          <div class="coin-inner"><span class="coin-symbol">₹</span></div>
+          <div class="coin-sparkles">
+            <div class="sparkle"></div><div class="sparkle"></div>
+          </div>
+        </div>
+        <div class="speed-lines-container">
+          <div class="speed-line"></div><div class="speed-line"></div>
+        </div>
+        <div class="success-checkmark-container" id="successCheck">
+          <div class="success-circle-outer">
+            <svg class="success-checkmark-svg" viewBox="0 0 52 52"><polyline points="14 27 22 35 38 19"/></svg>
+          </div>
+        </div>
+      </div>
+      <p class="payment-status" id="paymentStatusText">Processing Transaction...</p>
+      <p style="font-size: 13px; color: #888;">Please do not close this window</p>
+    </div>
+
+    <div class="success-message" id="successView">
+      <h2>Payment Successful!</h2>
+      <div class="transaction-id">Ref: TXN{{ job.id }}SUCCESS</div>
+      <p style="font-size: 13px; color: #666;">Redirecting back to dashboard...</p>
+    </div>
+
+    <div class="failed-message" id="failedView">
+      <div class="error-icon"><i class="fas fa-times"></i></div>
+      <h2>Payment Failed</h2>
+      <div class="error-details">Reference: ERR{{ job.id }}DECLINED</div>
+      <button class="pay-button" onclick="retryPayment()">Try Again</button>
+    </div>
+
+  </div>
+</div>
+
+<form method="post" action="{% url 'process_payment' job.id %}" id="autoSubmitForm">
+  {% csrf_token %}
+  <input type="hidden" name="payment_method" value="online">
+</form>
+
+<script>
+  // Tabs
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      this.classList.add('active');
+      document.getElementById(this.dataset.tab + '-content').classList.add('active');
+    });
+  });
+
+  // Card Formatting
+  const cardInp = document.querySelector('input[placeholder="0000 0000 0000 0000"]');
+  if(cardInp) {
+    cardInp.addEventListener('input', (e) => {
+      let v = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+      let matches = v.match(/\d{4,16}/g);
+      let match = matches && matches[0] || '';
+      let parts = [];
+      for (let i=0, len=match.length; i<len; i+=4) parts.push(match.substring(i, i+4));
+      if (parts.length) e.target.value = parts.join(' '); else e.target.value = v;
+    });
+  }
+
+  // Popup Logic
+  function openRazorpayPopup() { document.getElementById('razorpayPopup').classList.add('active'); }
+  function closeRazorpayPopup() { document.getElementById('razorpayPopup').classList.remove('active'); }
+
+  document.getElementById('card-form').addEventListener('submit', (e) => { e.preventDefault(); openRazorpayPopup(); });
+  document.getElementById('upi-form').addEventListener('submit', (e) => { e.preventDefault(); openRazorpayPopup(); });
+
+  // --- COIN ANIMATION LOGIC ---
+  function startProcessing() {
+    closeRazorpayPopup();
+    const overlay = document.getElementById('paymentOverlay');
+    overlay.classList.add('active');
+    
+    // Reset state
+    document.getElementById('processingView').style.display = 'block';
+    document.getElementById('successView').classList.remove('show');
+    document.getElementById('failedView').classList.remove('show');
+    document.getElementById('successCheck').classList.remove('show');
+    
+    // Trigger CSS Animation
+    const coin = document.getElementById('paymentCoin');
+    coin.classList.remove('animate');
+    void coin.offsetWidth; // Force Reflow
+    coin.classList.add('animate');
+
+    const statusText = document.getElementById('paymentStatusText');
+    setTimeout(() => { statusText.innerText = "Securing Connection..."; }, 500);
+    setTimeout(() => { statusText.innerText = "Contacting Bank..."; }, 1500);
+    setTimeout(() => { statusText.innerText = "Verifying..."; }, 2500);
+
+    // End of Coin Animation (3.5s) -> Show Checkmark
+    setTimeout(() => {
+      document.getElementById('successCheck').classList.add('show');
+      statusText.innerText = "Payment Verified!";
+      
+      // Show Final Success Message
+      setTimeout(() => {
+        document.getElementById('processingView').style.display = 'none';
+        document.getElementById('successView').classList.add('show');
+        
+        // Submit to Django
+        setTimeout(() => {
+          document.getElementById('autoSubmitForm').submit();
+        }, 2000);
+      }, 1500);
+    }, 3200);
+  }
+
+  function retryPayment() {
+    document.getElementById('failedView').classList.remove('show');
+    document.getElementById('paymentOverlay').classList.remove('active');
+    setTimeout(openRazorpayPopup, 300);
+  }
+</script>
+{% endblock %}

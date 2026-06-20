@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="min-height: 80vh; display: flex; align-items: center; justify-content: center; background: url('https://images.unsplash.com/photo-1493238792015-1a419acdc924?q=80&w=2071') no-repeat center/cover;">
+    <div style="position: absolute; inset: 0; background: rgba(15, 23, 42, 0.8);"></div>
+
+    <div style="position: relative; z-index: 10; background: rgba(30, 41, 59, 0.9); backdrop-filter: blur(10px); padding: 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); width: 100%; max-width: 500px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+        
+        <div style="text-align: center; margin-bottom: 30px;">
+            <div style="width: 60px; height: 60px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; font-size: 1.5rem; color: white;">
+                <i class="fa-solid fa-car"></i>
+            </div>
+            <h2 style="color: white; margin: 0; font-family: 'Outfit', sans-serif;">Add New Vehicle</h2>
+            <p style="color: #94a3b8; margin-top: 5px;">Enter your vehicle details below</p>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; color: #cbd5e1; margin-bottom: 8px; font-size: 0.9rem;">Make (Brand)</label>
+                <input type="text" name="make" placeholder="e.g. Toyota, Honda" required 
+                       style="width: 100%; padding: 12px; background: #1e293b; border: 1px solid #475569; border-radius: 8px; color: white; outline: none;">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; color: #cbd5e1; margin-bottom: 8px; font-size: 0.9rem;">Model</label>
+                <input type="text" name="model" placeholder="e.g. Corolla, Civic" required 
+                       style="width: 100%; padding: 12px; background: #1e293b; border: 1px solid #475569; border-radius: 8px; color: white; outline: none;">
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                <div style="flex: 1;">
+                    <label style="display: block; color: #cbd5e1; margin-bottom: 8px; font-size: 0.9rem;">Year</label>
+                    <input type="number" name="year" placeholder="2020" required 
+                           style="width: 100%; padding: 12px; background: #1e293b; border: 1px solid #475569; border-radius: 8px; color: white; outline: none;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; color: #cbd5e1; margin-bottom: 8px; font-size: 0.9rem;">Reg. Number</label>
+                    <input type="text" name="reg_number" placeholder="KL-01-AB-1234" required 
+                           style="width: 100%; padding: 12px; background: #1e293b; border: 1px solid #475569; border-radius: 8px; color: white; outline: none;">
+                </div>
+            </div>
+
+            <button type="submit" style="width: 100%; padding: 14px; background: #3b82f6; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.3s;">
+                Save Vehicle
+            </button>
+            
+            <a href="{% url 'dashboard' %}" style="display: block; text-align: center; color: #94a3b8; margin-top: 20px; text-decoration: none; font-size: 0.9rem;">
+                Cancel
+            </a>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+/* --- THEME VARIABLES --- */
+:root {
+    --bg-deep: #030014;
+    --primary-glow: #7000ff;
+    --secondary-glow: #00f0ff;
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --text-muted: #94a3b8;
+    --font-tech: 'Rajdhani', sans-serif;
+    --font-body: 'Outfit', sans-serif;
+}
+
+/* --- BACKGROUND --- */
+.register-wrapper {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    background-image: 
+        linear-gradient(rgba(3, 0, 20, 0.85), rgba(3, 0, 20, 0.95)),
+        url('https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=1920&auto=format&fit=crop');
+    background-size: cover; background-position: center;
+}
+
+/* --- CARD LAYOUT --- */
+.register-card {
+    width: 100%; max-width: 1000px;
+    /* We allow height to grow for registration forms, but set min-height */
+    min-height: 600px; 
+    display: grid; grid-template-columns: 0.8fr 1.2fr;
+    background: rgba(15, 23, 35, 0.9);
+    backdrop-filter: blur(25px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+}
+
+/* --- VISUAL SIDE (LEFT) --- */
+.register-visual-side {
+    background: url('https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?q=80&w=1974&auto=format&fit=crop') center/cover;
+    position: relative;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 40px;
+}
+.visual-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, #030014 10%, rgba(3, 0, 20, 0.6) 100%);
+}
+.visual-content { position: relative; z-index: 2; }
+.visual-content h2 { font-size: 28px; color: white; margin-bottom: 10px; font-weight: 700; line-height: 1.1; }
+.visual-content p { color: var(--text-muted); font-size: 14px; margin-bottom: 20px; }
+
+/* Feature Tags */
+.feature-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.feature-tag { 
+    background: rgba(0, 240, 255, 0.1); border: 1px solid var(--secondary-glow);
+    color: var(--secondary-glow); padding: 4px 10px; font-size: 11px; 
+    text-transform: uppercase; letter-spacing: 1px; font-weight: 600; border-radius: 4px;
+}
+
+/* --- FORM SIDE (RIGHT) --- */
+.register-form-side {
+    padding: 40px 50px;
+    display: flex; flex-direction: column; justify-content: center;
+}
+
+.form-header { margin-bottom: 25px; text-align: center; }
+.form-header h3 { font-size: 24px; color: white; font-weight: 600; margin-bottom: 5px; }
+.form-header p { color: var(--text-muted); font-size: 13px; margin: 0; }
+
+/* --- PERFECTLY ALIGNED INPUTS --- */
+.cyber-input-group {
+    position: relative;
+    margin-bottom: 15px; /* Tighter spacing */
+    width: 100%;
+}
+
+.form-control {
+    width: 100%;
+    height: 54px; /* Slightly increased height to ensure text fits */
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--glass-border);
+    color: #ffffff !important; /* Forces text to be visible white */
+    /* Top padding pushes text down to make room for floating label */
+    padding: 22px 15px 4px 15px; 
+    border-radius: 8px;
+    font-family: var(--font-body);
+    font-size: 15px;
+    transition: 0.3s;
+    outline: none;
+    box-sizing: border-box; /* Ensures width includes padding */
+}
+
+/* FIX: Stops browser autofill from making text invisible in dark mode */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #0a0f18 inset !important;
+    -webkit-text-fill-color: #ffffff !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* DROPDOWN ALIGNMENT FIX */
+select.form-control {
+    padding-top: 18px; /* Aligns dropdown text with input text */
+    cursor: pointer;
+    appearance: none; /* Removes native OS styling */
+}
+select.form-control option {
+    background-color: #030014;
+    color: white;
+    padding: 12px;
+}
+
+.form-control:focus {
+    border-color: var(--secondary-glow);
+    background: rgba(0, 240, 255, 0.05);
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.1);
+}
+
+/* Floating Label Logic */
+.form-label {
+    position: absolute;
+    left: 15px;
+    top: 17px; /* Centered visually */
+    color: var(--text-muted);
+    font-size: 14px;
+    pointer-events: none;
+    transition: 0.3s ease-out;
+}
+
+/* Float Up State */
+.form-control:focus ~ .form-label,
+.form-control:not(:placeholder-shown) ~ .form-label,
+select.form-control ~ .form-label { /* Always float for dropdowns */
+    top: 6px;
+    font-size: 10px;
+    color: var(--secondary-glow);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* --- BUTTON --- */
+.btn-submit {
+    width: 100%; height: 48px;
+    margin-top: 15px;
+    background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.15), transparent);
+    border: 1px solid var(--secondary-glow);
+    color: var(--secondary-glow);
+    font-family: var(--font-tech);
+    font-weight: 700; text-transform: uppercase; letter-spacing: 2px;
+    cursor: pointer; transition: 0.3s;
+}
+.btn-submit:hover {
+    background: var(--secondary-glow); color: black;
+    box-shadow: 0 0 20px var(--secondary-glow);
+}
+
+.login-link { text-align: center; margin-top: 20px; font-size: 13px; color: var(--text-muted); }
+.login-link a { color: white; text-decoration: none; font-weight: 600; }
+
+/* --- RESPONSIVE FIX --- */
+@media(max-width: 900px) {
+    .register-card { grid-template-columns: 1fr; border-radius: 16px; }
+    .register-visual-side { display: none; }
+    .register-form-side { padding: 30px 20px; }
+}
+</style>
+
+<div class="register-wrapper">
+    <div class="register-card">
+        
+        <div class="register-visual-side">
+            <div class="visual-overlay"></div>
+            <div class="visual-content">
+                <h2>Join the Network</h2>
+                <p>Register your vehicle or join as a technician to access advanced diagnostics and SOS features.</p>
+                <div class="feature-row">
+                    <span class="feature-tag">Live Tracking</span>
+                    <span class="feature-tag">Secure Data</span>
+                    <span class="feature-tag">Fast Payment</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="register-form-side">
+            <div class="form-header">
+                <h3>Initialize Profile</h3>
+                <p>Create your access credentials.</p>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                
+                <script>
+                    document.addEventListener("DOMContentLoaded", function() {
+                        // 1. Initialize Inputs
+                        const inputs = document.querySelectorAll('input, select, textarea');
+                        inputs.forEach(input => {
+                            input.classList.add('form-control');
+                            if(input.tagName !== 'SELECT') {
+                                input.placeholder = " "; // Required for CSS :placeholder-shown trick
+                            }
+                        });
+
+                        // 2. Remove "Admin" option from dropdown
+                        const roleSelect = document.querySelector('select[name="role"]');
+                        if (roleSelect) {
+                            Array.from(roleSelect.options).forEach(option => {
+                                if (option.value.toLowerCase() === 'admin') {
+                                    option.remove();
+                                }
+                            });
+                        }
+
+                        // 3. Tech Logic (Toggle Fields)
+                        const garageInput = document.querySelector('input[name="garage_name"]');
+                        const licenseInput = document.querySelector('input[name="license_number"]');
+
+                        // Find parent containers
+                        const garageGroup = garageInput ? garageInput.closest('.cyber-input-group') : null;
+                        const licenseGroup = licenseInput ? licenseInput.closest('.cyber-input-group') : null;
+
+                        function toggleTechFields() {
+                            if (roleSelect && garageGroup && licenseGroup) {
+                                if (roleSelect.value === 'technician') {
+                                    garageGroup.style.display = 'block';
+                                    licenseGroup.style.display = 'block';
+                                    garageInput.required = true;
+                                    licenseInput.required = true;
+                                } else {
+                                    garageGroup.style.display = 'none';
+                                    licenseGroup.style.display = 'none';
+                                    garageInput.required = false;
+                                    licenseInput.required = false;
+                                    garageInput.value = "";
+                                    licenseInput.value = "";
+                                }
+                            }
+                        }
+
+                        if (roleSelect) {
+                            roleSelect.addEventListener('change', toggleTechFields);
+                            toggleTechFields(); // Run immediately
+                        }
+                    });
+                </script>
+
+                {% for field in form %}
+                <div class="cyber-input-group" id="div_{{ field.name }}">
+                    {{ field }}
+                    
+                    <label class="form-label" for="{{ field.id_for_label }}">
+                        {% if field.name == 'garage_name' %}<i class="fas fa-warehouse me-1"></i>{% endif %}
+                        {% if field.name == 'license_number' %}<i class="fas fa-id-card me-1"></i>{% endif %}
+                        {% if field.name == 'district' %}<i class="fas fa-map-marker-alt me-1"></i>{% endif %}
+                        {{ field.label }}
+                    </label>
+                    
+                    {% for error in field.errors %}
+                        <div style="color: #ef4444; font-size: 11px; margin-top: 4px; text-align: right;">
+                            <i class="fas fa-circle-exclamation"></i> {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+
+                <button type="submit" class="btn-submit">
+                    Register ID
+                </button>
+            </form>
+
+            <div class="login-link">
+                Already registered? <a href="{% url 'login' %}">Login Terminal</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

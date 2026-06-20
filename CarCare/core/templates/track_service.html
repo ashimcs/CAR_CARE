@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+<style>
+    /* Full Screen Map Container */
+    .tracking-container {
+        position: relative;
+        height: 90vh; 
+        width: 100%;
+        background: #0f172a;
+    }
+
+    #fullMap {
+        height: 100%;
+        width: 100%;
+        z-index: 1;
+    }
+
+    /* Hide Leaflet Routing Machine Default Box */
+    .leaflet-routing-container {
+        display: none !important;
+    }
+
+    /* Floating Status Card */
+    .status-overlay {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        z-index: 1000;
+        background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 25px;
+        border-radius: 16px;
+        width: 340px; 
+        color: white;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+
+    /* --- TECHNICIAN PROFILE STYLES --- */
+    .tech-profile {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .tech-avatar {
+        width: 55px; height: 55px;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.4rem;
+        color: white;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        border: 2px solid rgba(255,255,255,0.1);
+    }
+    .tech-details h5 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: white;
+    }
+    .tech-details p {
+        margin: 2px 0 0 0;
+        font-size: 0.85rem;
+        color: #94a3b8;
+        display: flex; align-items: center; gap: 5px;
+    }
+
+    /* Back Button */
+    .btn-back {
+        position: absolute;
+        bottom: 30px;
+        left: 20px;
+        z-index: 1000;
+        background: #3b82f6;
+        color: white;
+        padding: 12px 25px;
+        border-radius: 50px;
+        text-decoration: none;
+        box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+        font-weight: bold;
+        transition: 0.3s;
+    }
+    .btn-back:hover { transform: translateY(-2px); }
+
+    /* Marker Styles */
+    .custom-div-icon { background: transparent; border: none; }
+    .marker-pin {
+        width: 30px; height: 30px; border-radius: 50% 50% 50% 0;
+        background: #3b82f6; position: absolute; transform: rotate(-45deg);
+        left: 50%; top: 50%; margin: -15px 0 0 -15px;
+        box-shadow: 0 0 10px #3b82f6;
+    }
+    .marker-pin::after {
+        content: ''; width: 14px; height: 14px; margin: 8px 0 0 8px;
+        background: #fff; position: absolute; border-radius: 50%;
+    }
+    .tech-pin { background: #10b981 !important; box-shadow: 0 0 10px #10b981 !important; }
+
+    .pulse-dot {
+        height: 10px; width: 10px;
+        background-color: #10b981;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+        animation: pulse-animation 1.5s infinite;
+    }
+    @keyframes pulse-animation {
+        0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    /* Timeline & Stats */
+    .timeline { display: flex; justify-content: space-between; margin: 20px 0; position: relative; }
+    .timeline::before {
+        content: ''; position: absolute; top: 8px; left: 0; right: 0;
+        height: 2px; background: rgba(255,255,255,0.1); z-index: 0;
+    }
+    .step {
+        text-align: center; flex: 1; position: relative; z-index: 1;
+        color: rgba(255,255,255,0.4); font-size: 9px; text-transform: uppercase; font-weight: 600;
+    }
+    .step span {
+        display: inline-block; width: 12px; height: 12px;
+        background: #0f172a; border: 2px solid rgba(255,255,255,0.2);
+        border-radius: 50%; margin-bottom: 5px; transition: .3s;
+    }
+    .step.active { color: #3b82f6; }
+    .step.active span { background: #3b82f6; border-color: #3b82f6; box-shadow: 0 0 8px #3b82f6; }
+
+    .stats-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;
+    }
+    .stat-box {
+        background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; text-align: center;
+    }
+    .stat-val { font-size: 1.1rem; font-weight: 700; color: white; }
+    .stat-lbl { font-size: 0.65rem; color: #94a3b8; letter-spacing: 0.5px; }
+
+    .btn-invoice {
+        background: #3b82f6; color: white; border: none; width: 100%;
+        padding: 10px; border-radius: 8px; font-size: 0.9rem; font-weight: 600;
+        margin-top: 15px; text-decoration: none; display: block; text-align: center;
+        transition: 0.2s; border: 1px solid rgba(255,255,255,0.1);
+    }
+    .btn-invoice:hover { background: #2563eb; color: white; transform: translateY(-2px); }
+
+    .demo-controls {
+        position: absolute; top: 20px; right: 20px; z-index: 1000;
+        display: flex; flex-direction: column; gap: 5px;
+    }
+    .demo-btn {
+        background: rgba(0,0,0,0.6); color: #ccc; border: 1px solid rgba(255,255,255,0.1);
+        padding: 5px 10px; font-size: 0.7rem; cursor: pointer; border-radius: 4px;
+    }
+    .demo-btn:hover { background: white; color: black; }
+</style>
+
+<div class="tracking-container">
+    <div id="fullMap"></div>
+
+    <div class="status-overlay">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h4 style="margin:0;"><span class="pulse-dot"></span> Live Tracking</h4>
+            <span style="font-size:0.7rem; background:rgba(16,185,129,0.15); color:#10b981; padding:2px 8px; border-radius:10px;">ONLINE</span>
+        </div>
+        <p style="color:#94a3b8; font-size:0.8rem; margin: 2px 0 15px 0;">Service Ref: #{{ service.id }}</p>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-lbl">EST. ARRIVAL</div>
+                <div class="stat-val" id="eta-val" style="color:#3b82f6;">-- MIN</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-lbl">DISTANCE</div>
+                <div class="stat-val" id="dist-val">-- KM</div>
+            </div>
+        </div>
+
+        <div class="timeline" id="serviceTimeline">
+            <div class="step active"><span></span><br>Req</div>
+            <div class="step active"><span></span><br>Apprv</div>
+            <div class="step" id="step-site"><span></span><br>Site</div>
+            <div class="step" id="step-work"><span></span><br>Work</div>
+            <div class="step" id="step-pay"><span></span><br>Done</div>
+        </div>
+        
+        <div class="tech-profile">
+            <div class="tech-avatar">
+                <i class="fas fa-user-cog"></i>
+            </div>
+            <div class="tech-details">
+                <div style="font-size:0.7rem; color:#94a3b8; text-transform:uppercase; font-weight:700;">Assigned Technician</div>
+                <h5>{{ service.technician.username|title }}</h5>
+                <p>
+                    <i class="fas fa-phone-alt" style="color:#10b981;"></i> 
+                    <span style="font-family:monospace; font-size:0.9rem; color:white;">{{ service.technician.phone|default:"-- --" }}</span>
+                </p>
+            </div>
+        </div>
+
+        <div style="margin-top:15px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <a href="tel:{{ service.technician.phone }}" class="btn btn-success btn-sm w-100" style="background:#10b981; border:none; padding:10px; border-radius:8px; text-decoration:none; text-align:center; color:white; font-weight:600;">
+                <i class="fas fa-phone"></i> Call Now
+            </a>
+            <button class="btn btn-outline-light btn-sm w-100" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#ccc; border-radius:8px;">Message</button>
+        </div>
+
+        {% if service.status|lower == 'completed' %}
+        <a href="{% url 'download_invoice' service.id %}" target="_blank" class="btn-invoice">
+            <i class="fas fa-file-invoice"></i> Download Invoice PDF
+        </a>
+        {% endif %}
+        
+        <hr style="border-color:rgba(255,255,255,0.1); margin: 15px 0;">
+        <small style="color:#94a3b8; text-transform:uppercase; font-size:0.7rem; font-weight:700;">Destination</small>
+        <div style="display:flex; gap:10px; align-items:start; margin-top:5px;">
+            <i class="fas fa-map-marker-alt" style="color:#ef4444; margin-top:3px;"></i>
+            <p style="margin:0; font-size:0.9rem; line-height:1.4;">{{ service.location }}</p>
+        </div>
+    </div>
+
+    <div class="demo-controls">
+        <button class="demo-btn" onclick="updateStatus(3)">Sim: Arrive</button>
+        <button class="demo-btn" onclick="updateStatus(4)">Sim: Work</button>
+        <button class="demo-btn" onclick="updateStatus(5)">Sim: Done</button>
+    </div>
+
+    <a href="{% url 'dashboard' %}" class="btn-back"><i class="fas fa-arrow-left"></i> Back</a>
+
+    <div id="locationData" data-location="{{ service.location }}" style="display:none;"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+<script>
+    // --- TIMELINE UPDATE LOGIC ---
+    function updateStatus(level) {
+        if(level >= 3) document.getElementById('step-site').classList.add('active');
+        if(level >= 4) document.getElementById('step-work').classList.add('active');
+        if(level >= 5) document.getElementById('step-pay').classList.add('active');
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // 1. EXTRACT GPS
+        var locElement = document.getElementById('locationData');
+        var rawLoc = locElement ? locElement.getAttribute('data-location') : "";
+        var userLat = 9.9312; // Default
+        var userLng = 76.2673;
+
+        var gpsMatch = rawLoc.match(/\[GPS: ([\d.-]+), ([\d.-]+)\]/);
+        if (gpsMatch) {
+            userLat = parseFloat(gpsMatch[1]);
+            userLng = parseFloat(gpsMatch[2]);
+        }
+
+        var techLat = userLat + 0.02; // Start further away
+        var techLng = userLng + 0.02;
+
+        // 2. INIT MAP
+        var map = L.map('fullMap').setView([userLat, userLng], 13);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CARTO',
+            maxZoom: 19
+        }).addTo(map);
+
+        // 3. ICONS
+        var UserIcon = L.divIcon({
+            className: 'custom-div-icon',
+            html: "<div style='background-color:#3b82f6;' class='marker-pin'></div><i class='fa-solid fa-house' style='position:absolute; top:-10px; left:-5px; color:white; font-size:12px;'></i>",
+            iconSize: [30, 42], iconAnchor: [15, 42]
+        });
+        var TechIcon = L.divIcon({
+            className: 'custom-div-icon',
+            html: "<div style='background-color:#10b981;' class='marker-pin tech-pin'></div><i class='fa-solid fa-motorcycle' style='position:absolute; top:-10px; left:-5px; color:white; font-size:12px;'></i>",
+            iconSize: [30, 42], iconAnchor: [15, 42]
+        });
+
+        // 4. ADD MARKERS
+        var userMarker = L.marker([userLat, userLng], {icon: UserIcon}).addTo(map).bindPopup("<b>Destination</b><br>{{ service.location }}");
+        
+        var techMarker = L.marker([techLat, techLng], {icon: TechIcon}).addTo(map).bindPopup(
+            "<div style='text-align:center;'>" +
+            "<b style='color:#333; font-size:14px;'>{{ service.technician.username|title }}</b><br>" +
+            "<span style='color:#10b981; font-weight:bold;'>{{ service.technician.phone }}</span>" +
+            "</div>"
+        ).openPopup();
+
+        // 5. ROUTING AND ANIMATION (REAL ROADS)
+        var routingControl = L.Routing.control({
+            waypoints: [
+                L.latLng(techLat, techLng), // Start
+                L.latLng(userLat, userLng)  // End
+            ],
+            routeWhileDragging: false,
+            addWaypoints: false,
+            draggableWaypoints: false,
+            fitSelectedRoutes: true,
+            show: false, // Hides the text list
+            lineOptions: {
+                styles: [{color: '#3b82f6', opacity: 0.7, weight: 5}]
+            },
+            createMarker: function() { return null; } // Don't create default markers
+        }).addTo(map);
+
+        // Event: When route is found, animate along it
+        routingControl.on('routesfound', function(e) {
+            var routes = e.routes;
+            var summary = routes[0].summary;
+            var coordinates = routes[0].coordinates; // The exact path points
+
+            // Update Real Stats
+            document.getElementById('dist-val').innerText = (summary.totalDistance / 1000).toFixed(1) + " KM";
+            document.getElementById('eta-val').innerText = Math.round(summary.totalTime / 60) + " MIN";
+
+            // --- ANIMATION LOOP ---
+            var i = 0;
+            function animateCar() {
+                if (i < coordinates.length) {
+                    techMarker.setLatLng(coordinates[i]);
+                    i++;
+                    
+                    // --- SPEED ADJUSTMENT HERE ---
+                    // Changed from 100ms to 500ms (Much Slower)
+                    setTimeout(animateCar, 500); 
+                }
+            }
+            // Start animation after 1 second
+            setTimeout(animateCar, 1000);
+        });
+        
+        // Auto-update status
+     
+    });
+</script>
+{% endblock %}

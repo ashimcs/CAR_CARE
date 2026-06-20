@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Care Kerala</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .navbar { background-color: #0d6efd; }
+        .navbar-brand, .nav-link { color: white !important; }
+        .card { border: none; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 15px; margin-bottom: 20px; }
+        .btn-custom { background-color: #0d6efd; color: white; border-radius: 50px; padding: 10px 25px; }
+        .hero { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1487754180477-db33c3454558?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'); background-size: cover; height: 60vh; display: flex; align-items: center; justify-content: center; color: white; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg">
+  <div class="container">
+    <a class="navbar-brand" href="{% url 'home' %}"><i class="fas fa-car-crash"></i> Car Care</a>
+    <div class="ms-auto">
+        {% if user.is_authenticated %}
+            <span class="text-white me-3">Hello, {{ user.username }}</span>
+            <a href="{% url 'dashboard' %}" class="btn btn-sm btn-light">Dashboard</a>
+            <form action="{% url 'logout' %}" method="post" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-light ms-2">Logout</button>
+            </form>
+        {% else %}
+            <!-- <a href="{% url 'login' %}" class="btn btn-sm btn-light me-2">Login</a>
+            <a href="{% url 'register' %}" class="btn btn-sm btn-outline-light">Register</a> -->
+        {% endif %}
+    </div>
+  </div>
+</nav>
+
+<div class="container-fluid p-0">
+    {% block content %}
+    {% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

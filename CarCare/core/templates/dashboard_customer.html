@@ -1,0 +1,962 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+<style>
+/* ---------------- THEME VARIABLES ---------------- */
+:root {
+    --bg-image: url('https://images.unsplash.com/photo-1493238792015-1a419acdc924?q=80&w=2071&auto=format&fit=crop');
+    --glass: rgba(18, 24, 38, 0.90);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --primary: #3b82f6; 
+    --accent: #ef4444;  
+    --success: #10b981; 
+    --warning: #f59e0b; 
+    --text-white: #f8fafc;
+    --text-gray: #94a3b8;
+    --sidebar-width: 260px;
+}
+
+body {
+    background: var(--bg-image) no-repeat center center/cover !important;
+    color: var(--text-white) !important;
+    font-family: 'Outfit', sans-serif !important;
+    min-height: 100vh;
+}
+
+body::after {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle at center, rgba(10,10,15,0.7) 0%, rgba(5,5,10,0.95) 100%);
+    z-index: -1; pointer-events: none;
+}
+
+.wrapper { display: flex; min-height: 90vh; }
+
+/* Hide Routing Machine Text Box */
+.leaflet-routing-container { display: none !important; }
+
+/* ---------------- SIDEBAR ---------------- */
+.sidebar {
+    width: var(--sidebar-width);
+    background: rgba(10, 10, 15, 0.6);
+    backdrop-filter: blur(20px);
+    border-right: 1px solid var(--glass-border);
+    display: flex; flex-direction: column;
+    padding: 25px;
+    border-radius: 0 20px 20px 0;
+}
+
+.brand {
+    font-size: 1.4rem; font-weight: 700; letter-spacing: 1px;
+    margin-bottom: 40px; color: white; display: flex; align-items: center; gap: 10px;
+}
+.brand i { color: var(--primary); }
+
+.nav-links { list-style: none; display: flex; flex-direction: column; gap: 8px; padding-left: 0; }
+.nav-links li a {
+    text-decoration: none; color: var(--text-gray);
+    display: flex; align-items: center; gap: 15px;
+    padding: 14px 16px; border-radius: 12px;
+    font-weight: 500; transition: all 0.3s ease;
+}
+.nav-links li a:hover, .nav-links li a.active {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--primary);
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.1);
+}
+
+.sos-wrapper { margin-top: auto; }
+.btn-sos {
+    width: 100%; padding: 16px;
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    border: none; border-radius: 12px;
+    color: white; font-weight: 700; letter-spacing: 1px;
+    cursor: pointer; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: 0.3s; animation: pulse 2s infinite;
+}
+.btn-sos:hover { transform: scale(1.02); }
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* ---------------- MAIN CONTENT ---------------- */
+.main-dashboard { flex: 1; padding: 30px; overflow-y: auto; height: 100vh; }
+
+.top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+.greeting h1 { font-size: 1.8rem; font-weight: 600; margin: 0; }
+.greeting p { color: var(--text-gray); font-size: 0.9rem; margin-top: 5px; }
+
+.profile-actions { display: flex; align-items: center; gap: 20px; }
+.icon-btn {
+    width: 45px; height: 45px; border-radius: 50%;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    color: var(--text-white); display: flex; justify-content: center; align-items: center;
+    cursor: pointer; transition: 0.3s;
+}
+.icon-btn:hover { background: var(--primary); border-color: var(--primary); }
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-gap: 25px;
+}
+
+.glass-card {
+    background: var(--glass);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 25px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s;
+}
+.glass-card:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.2); }
+
+.col-span-1 { grid-column: span 1; }
+.col-span-2 { grid-column: span 2; }
+.row-span-2 { grid-row: span 2; }
+
+/* Tracking Widget */
+.tracking-widget { height: 100%; display: flex; flex-direction: column; }
+#trackMap {
+    margin-top: 15px; flex: 1; min-height: 280px; border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    z-index: 1;
+}
+
+/* Map Markers */
+.custom-div-icon { background: transparent; border: none; }
+.marker-pin {
+    width: 30px; height: 30px; border-radius: 50% 50% 50% 0;
+    background: var(--primary); position: absolute; transform: rotate(-45deg);
+    left: 50%; top: 50%; margin: -15px 0 0 -15px;
+    box-shadow: 0 0 10px var(--primary);
+}
+.marker-pin::after {
+    content: ''; width: 14px; height: 14px; margin: 8px 0 0 8px;
+    background: #fff; position: absolute; border-radius: 50%;
+}
+.tech-pin { background: var(--success) !important; box-shadow: 0 0 10px var(--success) !important; }
+
+/* Vehicle Health */
+.health-ring {
+    width: 120px; height: 120px; border-radius: 50%;
+    border: 8px solid rgba(255,255,255,0.05);
+    border-top: 8px solid var(--success);
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    margin: 0 auto;
+}
+.health-score { font-size: 1.8rem; font-weight: 700; color: white; }
+.health-label { font-size: 0.8rem; color: var(--text-gray); }
+
+/* Quick Buttons */
+.action-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
+.quick-btn {
+    padding: 15px; background: rgba(255,255,255,0.03);
+    border: 1px solid var(--glass-border); border-radius: 12px;
+    color: var(--text-gray); cursor: pointer; transition: 0.3s; text-decoration: none;
+    text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.quick-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+
+/* History List (Small Card) */
+.history-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid var(--glass-border);
+}
+.history-item:last-child { border-bottom: none; }
+.history-details h4 { font-size: 0.95rem; margin-bottom: 4px; color: white; }
+.history-details p { font-size: 0.8rem; color: var(--text-gray); margin: 0; }
+.status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+.status-completed { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+.status-pending { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+.status-inprogress { background: rgba(59, 130, 246, 0.2); color: var(--primary); }
+.status-payment { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+/* Payment Box Style */
+.payment-box {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid #ef4444;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+.payment-amount { font-size: 1.5rem; font-weight: 700; color: white; margin: 10px 0; }
+.btn-pay {
+    background: #10b981; color: white; border: none; padding: 10px 25px;
+    border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;
+    text-decoration: none; display: inline-block;
+}
+.btn-pay:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
+
+/* Download Button Style */
+.btn-download {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+    color: var(--text-gray); display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--glass-border); transition: 0.3s; text-decoration: none; font-size: 0.8rem;
+}
+.btn-download:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
+/* Hover Stack Cards */
+.hover-stack-card {
+    background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); 
+    padding: 12px; border-radius: 10px; display: flex; align-items: center; gap: 12px; transition: 0.3s;
+}
+.hover-stack-card:hover {
+    transform: translateX(5px);
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.2);
+}
+
+/* --- NEW: VISUAL TRACKER STYLES --- */
+.tracker-container {
+    padding: 15px 0; margin-bottom: 15px; position: relative;
+}
+.tracker-steps {
+    display: flex; justify-content: space-between; position: relative; margin-top: 10px;
+}
+.tracker-steps::before {
+    content: ''; position: absolute; top: 12px; left: 0; width: 100%; height: 3px;
+    background: rgba(255,255,255,0.1); z-index: 0;
+}
+.tracker-step {
+    position: relative; z-index: 1; text-align: center; width: 20%;
+}
+.tracker-circle {
+    width: 25px; height: 25px; background: #0f172a; border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 8px; color: rgba(255,255,255,0.5); font-size: 10px; transition: 0.3s;
+}
+.tracker-label { font-size: 10px; color: rgba(255,255,255,0.5); font-weight: 500; }
+
+/* Active/Completed States for Tracker */
+.tracker-step.completed .tracker-circle { background: var(--success); border-color: var(--success); color: white; }
+.tracker-step.completed .tracker-label { color: var(--success); }
+.tracker-step.active .tracker-circle { background: #0f172a; border-color: var(--primary); color: var(--primary); box-shadow: 0 0 10px var(--primary); }
+.tracker-step.active .tracker-label { color: var(--primary); font-weight: 700; }
+.progress-bar-fill {
+    position: absolute; top: 12px; left: 0; height: 3px; background: var(--success); z-index: 0; transition: width 0.5s ease;
+}
+
+/* --- NEW: FULL HISTORY TABLE STYLES --- */
+.history-card-full {
+    margin-top: 30px;
+    background: var(--glass);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 25px;
+    overflow: hidden;
+}
+.history-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+.history-table th { text-align: left; padding: 15px; color: var(--text-gray); font-size: 0.85rem; border-bottom: 1px solid var(--glass-border); }
+.history-table td { padding: 15px; border-bottom: 1px solid var(--glass-border); font-size: 0.9rem; color: white; }
+.history-table tr:last-child td { border-bottom: none; }
+.btn-rebook {
+    background: rgba(59, 130, 246, 0.15); color: var(--primary); padding: 6px 12px;
+    border-radius: 8px; text-decoration: none; font-size: 0.8rem; font-weight: 600;
+    border: 1px solid rgba(59, 130, 246, 0.3); transition: 0.3s; display: inline-flex; align-items: center; gap: 5px;
+}
+.btn-rebook:hover { background: var(--primary); color: white; }
+
+/* Modals */
+.modal-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+    display: none; align-items: center; justify-content: center;
+}
+.modal-box {
+    background: #0f172a; width: 450px; padding: 30px;
+    border-radius: 20px; border: 1px solid var(--glass-border);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+.form-group { margin-bottom: 15px; }
+.form-group input, .form-group select {
+    width: 100%; padding: 12px; background: #1e293b;
+    border: 1px solid #334155; color: white; border-radius: 8px; outline: none;
+}
+
+@media (max-width: 1024px) {
+    .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+    .sidebar { width: 80px; padding: 15px; }
+    .brand span, .nav-links li a span, .btn-sos span { display: none; }
+    .btn-sos { padding: 12px; }
+}
+@media (max-width: 768px) {
+    .wrapper { flex-direction: column; }
+    .sidebar { width: 100%; border-radius: 0; flex-direction: row; justify-content: space-between; align-items: center; }
+    .nav-links { flex-direction: row; }
+    .main-dashboard { padding: 15px; }
+    .dashboard-grid { grid-template-columns: 1fr; }
+    .col-span-2 { grid-column: span 1; }
+    .history-table { display: block; overflow-x: auto; }
+}
+</style>
+
+<div class="wrapper">
+    <aside class="sidebar">
+        <div class="brand">
+            <i class="fa-solid fa-bolt"></i> <span>CarCare KL</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="{% url 'dashboard' %}" class="active"><i class="fa-solid fa-grid-2"></i> <span>Dashboard</span></a></li>
+            {% if requests and requests.0.status == 'in_progress' %}
+                <li>
+                    <a href="{% url 'track_service' requests.0.id %}" style="color: #10b981;">
+                        <i class="fa-solid fa-location-crosshairs fa-fade"></i> <span>Live Tracking</span>
+                    </a>
+                </li>
+            {% endif %}
+            <li><a href="{% url 'add_vehicle' %}"><i class="fa-solid fa-car"></i> <span>Vehicles</span></a></li>
+            <li><a href="{% url 'book_service' %}"><i class="fa-solid fa-calendar-check"></i> <span>Bookings</span></a></li>
+            <li><a href="{% url 'download_full_report' %}" target="_blank"><i class="fa-solid fa-file-pdf"></i> <span>Full Report</span></a></li>
+            <li><a href="#" onclick="openModal('ai')"><i class="fa-solid fa-microchip"></i> <span>AI Diagnosis</span></a></li>
+        </ul>
+        
+        <div class="sos-wrapper">
+            <button class="btn-sos" onclick="openModal('sos')">
+                <i class="fa-solid fa-triangle-exclamation"></i> <span>SOS HELP</span>
+            </button>
+        </div>
+    </aside>
+
+    <main class="main-dashboard">
+        <div class="top-bar">
+            <div class="greeting">
+                <h1>Hello, {{ user.first_name|default:user.username|title }}</h1>
+                <p>{{ user.district|default:"Kerala" }} • <span style="color:var(--success)">● System Online</span></p>
+            </div>
+            <div class="profile-actions">
+                <button class="icon-btn"><i class="fa-regular fa-bell"></i></button>
+                <div class="icon-btn">
+                   <span class="fw-bold">{{ user.username|make_list|first|upper }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+
+            <div class="glass-card col-span-2 row-span-2">
+                <div class="tracking-widget">
+                    <div>
+                        {% if requests and requests.0.status == 'payment_pending' %}
+                            
+                            <div class="payment-box">
+                                <i class="fas fa-file-invoice-dollar fa-3x" style="color: #ef4444; margin-bottom:10px;"></i>
+                                <h3 style="color:white; margin:0;">Bill Ready</h3>
+                                <p style="color:var(--text-gray);">Please choose a payment method.</p>
+                                
+                                <div class="payment-amount">₹{{ requests.0.total_cost }}</div>
+                                
+                                <div style="display: flex; gap: 15px; margin-top: 20px;">
+                                    <form method="POST" action="{% url 'process_payment' requests.0.id %}" style="flex:1;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="payment_method" value="cash">
+                                        <button type="submit" class="btn-pay" style="width:100%; background: #475569;">
+                                            <i class="fas fa-hand-holding-dollar"></i> Pay Offline
+                                        </button>
+                                    </form>
+
+                                    <a href="{% url 'payment_gateway' requests.0.id %}" class="btn-pay" style="flex:1; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px;">
+                                        <i class="fas fa-credit-card"></i> Pay Online
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px;">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:5px;">
+                                    <span style="color:var(--text-gray);">Labor Cost</span>
+                                    <span style="color:white;">₹{{ requests.0.labor_cost }}</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:5px;">
+                                    <span style="color:var(--text-gray);">Parts Cost</span>
+                                    <span style="color:white;">₹{{ requests.0.parts_cost }}</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between;">
+                                    <strong style="color:white;">Total Payable</strong>
+                                    <strong style="color:#10b981;">₹{{ requests.0.total_cost }}</strong>
+                                </div>
+                            </div>
+
+                        {% elif requests and requests.0.status == 'in_progress' %}
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <h3 style="color:white; margin:0;">Active Service</h3>
+                                    <p style="color:var(--text-gray); font-size:0.9rem;">Ref: #REQ-{{ requests.0.id }}</p>
+                                </div>
+                                <span class="status-badge status-inprogress">
+                                    <i class="fas fa-spinner fa-spin me-1"></i> IN PROGRESS
+                                </span>
+                            </div>
+
+                            <div class="tracker-container">
+                                <div class="progress-bar-fill" style="width: 60%;"></div>
+                                <div class="tracker-steps">
+                                    <div class="tracker-step completed">
+                                        <div class="tracker-circle"><i class="fas fa-paper-plane"></i></div>
+                                        <div class="tracker-label">Sent</div>
+                                    </div>
+                                    <div class="tracker-step completed">
+                                        <div class="tracker-circle"><i class="fas fa-user-check"></i></div>
+                                        <div class="tracker-label">Assigned</div>
+                                    </div>
+                                    <div class="tracker-step active">
+                                        <div class="tracker-circle"><i class="fas fa-wrench"></i></div>
+                                        <div class="tracker-label">Work</div>
+                                    </div>
+                                    <div class="tracker-step">
+                                        <div class="tracker-circle"><i class="fas fa-clipboard-check"></i></div>
+                                        <div class="tracker-label">QC</div>
+                                    </div>
+                                    <div class="tracker-step">
+                                        <div class="tracker-circle"><i class="fas fa-flag-checkered"></i></div>
+                                        <div class="tracker-label">Done</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 15px; display: flex; align-items: center; gap: 15px; border: 1px solid rgba(255,255,255,0.05);">
+                                <div style="width: 50px; height: 50px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);">
+                                    <i class="fas fa-user-cog"></i>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div style="font-size: 0.7rem; color: var(--text-gray); text-transform: uppercase; font-weight: 700;">Assigned Technician</div>
+                                    <h4 style="margin: 0; font-size: 1.1rem; color: white;">{{ requests.0.technician.username|title }}</h4>
+                                    
+                                    <div style="font-size: 0.8rem; color: #64748b; margin-top:2px;">
+                                        <i class="fas fa-id-card"></i> Lic: {{ requests.0.technician.license_number|default:"N/A" }} | {{ requests.0.technician.district }}
+                                    </div>
+                                </div>
+                                <a href="tel:{{ requests.0.technician.phone }}" class="quick-btn" style="padding: 10px 20px; background: var(--success); color: white; border: none; text-decoration: none; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);">
+                                    <i class="fas fa-phone"></i> Call
+                                </a>
+                            </div>
+                            
+                            <div id="trackMap"></div>
+                            
+                            <div class="demo-controls" style="margin-top:10px;">
+                                <button class="quick-btn" onclick="updateStatus(3)" style="padding:5px 10px; font-size:0.8rem;">Sim: Work Done</button>
+                            </div>
+
+                            <div id="locationData" data-location="{{ requests.0.location }}" style="display:none;"></div>
+
+                        {% elif requests and requests.0.status == 'pending' %}
+                            <h3 style="color:white;">Request Pending</h3>
+                            <p style="color:var(--text-gray);">Looking for nearby technicians...</p>
+                            
+                            <div class="tracker-container">
+                                <div class="progress-bar-fill" style="width: 10%;"></div>
+                                <div class="tracker-steps">
+                                    <div class="tracker-step active">
+                                        <div class="tracker-circle"><i class="fas fa-paper-plane"></i></div>
+                                        <div class="tracker-label">Sent</div>
+                                    </div>
+                                    <div class="tracker-step">
+                                        <div class="tracker-circle"><i class="fas fa-user-check"></i></div>
+                                        <div class="tracker-label">Assigned</div>
+                                    </div>
+                                    <div class="tracker-step">
+                                        <div class="tracker-circle"><i class="fas fa-wrench"></i></div>
+                                        <div class="tracker-label">Work</div>
+                                    </div>
+                                    <div class="tracker-step">
+                                        <div class="tracker-circle"><i class="fas fa-clipboard-check"></i></div>
+                                        <div class="tracker-label">QC</div>
+                                    </div>
+                                    <div class="tracker-step">
+                                        <div class="tracker-circle"><i class="fas fa-flag-checkered"></i></div>
+                                        <div class="tracker-label">Done</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="flex:1; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.02); border-radius:12px; min-height:150px; margin-top:15px; overflow: hidden;">
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-search fa-3x mb-3 text-warning fa-bounce"></i>
+                                    <p>Broadcasting to network...</p>
+                                </div>
+                            </div>
+
+                        {% else %}
+                            <h3 style="color:white;">Status Center</h3>
+                            <p style="color:var(--text-gray);">No active emergency operations.</p>
+                            <div style="flex:1; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.02); border-radius:12px; min-height:200px; margin-top:15px;">
+                                <div class="text-center text-muted">
+                                    <i class="fa-solid fa-radar fa-3x mb-3" style="color: #334155;"></i>
+                                    <p>Waiting for requests...</p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card col-span-1">
+                <h3 style="color:white;">Vehicle Health</h3>
+                <div style="margin-top:20px;">
+                    {% if vehicles %}
+                        
+                        {% if vehicles|length > 1 %}
+                        <div style="margin-bottom: 15px;">
+                            <select id="vehicleSelector" onchange="changeVehicleHealth(this.value)" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border); color: white; border-radius: 8px; outline: none; font-family: 'Outfit', sans-serif;">
+                                {% for v in vehicles %}
+                                    <option value="{{ v.id }}" style="background: #0f172a; color: white;">{{ v.make }} {{ v.model }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+
+                        <div id="vehicle-health-container">
+                            {% for v in vehicles %}
+                            <div class="vehicle-health-slide" id="health-slide-{{ v.id }}" {% if not forloop.first %}style="display: none;"{% endif %}>
+                                <div class="health-ring">
+                                    <span class="health-score">Good</span>
+                                    <span class="health-label">Condition</span>
+                                </div>
+                                <div style="margin-top:15px; text-align:center;">
+                                    <p style="font-size:0.85rem; color:var(--text-gray);">
+                                        {{ v.make }} {{ v.model }} ({{ v.reg_number }})
+                                    </p>
+                                    <p style="font-size:0.8rem; color:var(--success); margin-top:5px;">
+                                        <i class="fa-solid fa-check"></i> Servicing Up-to-date
+                                    </p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                    {% else %}
+                        <div class="text-center mt-4">
+                            <p class="text-muted">No vehicles added</p>
+                            <a href="{% url 'add_vehicle' %}" class="text-primary small">Add Vehicle</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="glass-card col-span-1">
+                <h3 style="color:white;">Quick Assist</h3>
+                <div class="action-grid">
+                    <a href="{% url 'book_service' %}?service=jump_start" class="quick-btn"><i class="fa-solid fa-car-battery" style="color:#eab308"></i><span>Jump Start</span></a>
+                    <a href="{% url 'book_service' %}?service=towing" class="quick-btn"><i class="fa-solid fa-truck-pickup" style="color:#6366f1"></i><span>Towing</span></a>
+                    <a href="{% url 'book_service' %}?service=fuel" class="quick-btn"><i class="fa-solid fa-gas-pump" style="color:#ec4899"></i><span>Fuel</span></a>
+                    <a href="{% url 'book_service' %}?service=lockout" class="quick-btn"><i class="fa-solid fa-key" style="color:#14b8a6"></i><span>Lockout</span></a>
+                </div>
+            </div>
+
+            <div class="glass-card col-span-1">
+                <h3 style="color:white;">Maintenance Tracker</h3>
+                <div style="margin-top:20px;">
+                    {% if requests %}
+                        <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(16, 185, 129, 0.1)); padding: 15px; border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.3); margin-bottom: 20px;">
+                            <div style="display:flex; align-items:center; justify-content: space-between;">
+                                <div>
+                                    <div style="font-size:0.75rem; color:var(--primary); text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">Next Due Service</div>
+                                    <div style="font-size:1.2rem; color:white; font-weight:700; margin-top: 3px;">In 3 Months</div>
+                                </div>
+                                <div style="width: 45px; height: 45px; background: rgba(59,130,246,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 1.2rem;">
+                                    <i class="fas fa-tools"></i>
+                                </div>
+                            </div>
+                            <a href="{% url 'book_service' %}?service=general" class="quick-btn" style="padding: 8px; margin-top: 15px; flex-direction: row; justify-content: center; background: var(--primary); color: white; border: none; font-size: 0.85rem; font-weight: 600;">
+                                <i class="fas fa-calendar-plus"></i> Book Now
+                            </a>
+                        </div>
+
+                        <h4 style="font-size: 0.8rem; color: var(--text-gray); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Past Service Stack</h4>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            {% for req in requests|slice:":4" %}
+                            <div class="hover-stack-card">
+                                <div style="width: 35px; height: 35px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--text-gray);">
+                                    <i class="fas fa-wrench"></i>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div style="font-size: 0.85rem; color: white; font-weight: 600;">{{ req.get_service_type_display|default:"General Service" }}</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-gray);">{{ req.created_at|date:"M d, Y" }}</div>
+                                </div>
+                                {% if req.status == 'completed' %}
+                                    <span style="color: var(--success); font-size: 0.8rem;"><i class="fas fa-check-circle"></i></span>
+                                {% elif req.status == 'in_progress' %}
+                                    <span style="color: var(--primary); font-size: 0.8rem;"><i class="fas fa-spinner fa-spin"></i></span>
+                                {% else %}
+                                    <span style="color: var(--warning); font-size: 0.8rem;"><i class="fas fa-clock"></i></span>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                    {% else %}
+                        <div class="text-center mt-4">
+                            <i class="fas fa-clipboard-list text-muted mb-3" style="font-size: 2rem; opacity:0.5;"></i>
+                            <p class="text-muted small">No service history found.</p>
+                            <a href="{% url 'book_service' %}?service=general" class="quick-btn" style="padding: 10px; margin-top: 10px; flex-direction: row; justify-content: center;">
+                                <i class="fas fa-calendar-plus"></i> Schedule First Service
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="glass-card col-span-1">
+                <h3 style="color:white;">Recent Activity</h3>
+                <div style="margin-top:15px; display:flex; flex-direction:column; gap:5px;">
+                    {% for req in requests|slice:":3" %}
+                    <div class="history-item">
+                        <div class="history-details">
+                            <h4>{{ req.get_service_type_display }}</h4>
+                            <p>{{ req.created_at|date:"M d" }} • {{ req.vehicle.reg_number }}</p>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span class="status-badge 
+                                {% if req.status == 'completed' %}status-completed
+                                {% elif req.status == 'in_progress' %}status-inprogress
+                                {% elif req.status == 'payment_pending' %}status-payment
+                                {% else %}status-pending{% endif %}">
+                                {% if req.status == 'payment_pending' %}PAYMENT{% else %}{{ req.get_status_display|upper }}{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted small">No recent history.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="glass-card col-span-2">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 style="color:white; margin:0;">Available Technicians</h3>
+                    <span class="status-badge status-completed">{{ technicians.count }} Online</span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-height: 200px; overflow-y: auto;">
+                    {% for tech in technicians %}
+                    <div style="display:flex; align-items:center; gap:12px; padding:12px; background:rgba(255,255,255,0.05); border-radius:12px; border:1px solid rgba(255,255,255,0.05); transition:0.3s;">
+                        <div style="width:40px; height:40px; background:linear-gradient(135deg, var(--primary), #60a5fa); border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:1rem; box-shadow:0 4px 10px rgba(59, 130, 246, 0.3);">
+                            <i class="fas fa-user-wrench"></i>
+                        </div>
+                        <div style="flex:1;">
+                            <h5 style="margin:0; font-size:0.95rem; color:white;">{{ tech.username|title }}</h5>
+                            <div style="font-size:0.75rem; color:#64748b; margin-top:3px;">
+                                Zone: {{ tech.district }}
+                            </div>
+                        </div>
+                        <a href="tel:{{ tech.phone }}" style="width:35px; height:35px; background:rgba(255,255,255,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; text-decoration:none;">
+                            <i class="fas fa-phone"></i>
+                        </a>
+                    </div>
+                    {% empty %}
+                    <div class="col-span-2 text-center py-4">
+                        <i class="fas fa-users-slash text-muted mb-2" style="font-size: 1.5rem; opacity:0.5;"></i>
+                        <p class="text-muted small">No active technicians found in {{ user.district }}.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
+        <div class="history-card-full">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="color:white; margin:0;">Complete Service History</h3>
+                <a href="{% url 'download_full_report' %}" class="quick-btn" style="padding: 8px 15px; flex-direction: row; gap: 8px;">
+                    <i class="fas fa-print"></i> Print Report
+                </a>
+            </div>
+            
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Vehicle</th>
+                        <th>Issue</th>
+                        <th>Status</th>
+                        <th>Cost</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in requests %}
+                    <tr>
+                        <td>{{ req.created_at|date:"M d, Y" }}</td>
+                        <td>
+                            <div style="font-weight:600;">{{ req.vehicle.model }}</div>
+                            <div style="font-size:0.75rem; color:#94a3b8;">{{ req.vehicle.reg_number }}</div>
+                        </td>
+                        <td>{{ req.issue_description|truncatechars:30 }}</td>
+                        <td>
+                            <span class="status-badge status-{{ req.status }}">
+                                {{ req.get_status_display }}
+                            </span>
+                        </td>
+                        <td>{% if req.total_cost %}₹{{ req.total_cost }}{% else %}-{% endif %}</td>
+                        <td>
+                            <div style="display:flex; gap:10px;">
+                                <a href="{% url 'rebook_service' req.id %}" class="btn-rebook">
+                                    <i class="fas fa-sync-alt"></i> Re-Book
+                                </a>
+                                
+                                {% if req.status == 'completed' %}
+                                <a href="{% url 'download_invoice' req.id %}" target="_blank" class="btn-download" title="PDF">
+                                    <i class="fas fa-file-arrow-down"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" style="text-align:center; padding:30px; color:var(--text-gray);">No service records found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </main>
+</div>
+
+<div class="modal-overlay" id="modal-ai">
+    <div class="modal-box" style="width: 500px;">
+        <div style="text-align:center; margin-bottom:25px;">
+            <div style="width:60px; height:60px; background:rgba(59,130,246,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 15px; border:1px solid rgba(59,130,246,0.3);">
+                <i class="fa-solid fa-microchip fa-2x" style="color:var(--primary);"></i>
+            </div>
+            <h2 style="color:white; margin:0; font-size:1.5rem;">AI Car Doctor</h2>
+            <p style="color:var(--text-gray); font-size:0.9rem; margin-top:5px;">Select symptoms for instant diagnosis.</p>
+        </div>
+
+        <div id="ai-input-section">
+            <div class="form-group">
+                <label style="color:var(--text-gray); font-size:0.8rem; font-weight:700; text-transform:uppercase; margin-bottom:8px; display:block;">Affected Component</label>
+                <select id="ai-component" style="background:#1e293b; border-color:#334155; color:white;">
+                    <option value="" disabled selected>Choose Component...</option>
+                    <option value="Engine">Engine</option>
+                    <option value="Brakes">Brakes / Wheels</option>
+                    <option value="Electrical">Electrical / Battery</option>
+                    <option value="Suspension">Suspension / Steering</option>
+                    <option value="AC">Air Conditioning</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom:25px;">
+                <label style="color:var(--text-gray); font-size:0.8rem; font-weight:700; text-transform:uppercase; margin-bottom:8px; display:block;">Observed Symptom</label>
+                <select id="ai-symptom" style="background:#1e293b; border-color:#334155; color:white;">
+                    <option value="" disabled selected>Select Symptom...</option>
+                    <option value="Noise">Unusual Noise</option>
+                    <option value="Leak">Fluid Leakage</option>
+                    <option value="Smoke">Smoke / Smell</option>
+                    <option value="Vibration">Vibration / Shaking</option>
+                    <option value="PowerLoss">Loss of Power / Won't Start</option>
+                    <option value="WarningLight">Dashboard Warning Light</option>
+                </select>
+            </div>
+            <button class="btn-sos" style="background:var(--primary); box-shadow:0 0 15px rgba(59,130,246,0.4); animation:none;" onclick="runAIDiagnosis()">
+                <i class="fa-solid fa-magnifying-glass-chart"></i> Analyze Issue
+            </button>
+        </div>
+
+        <div id="ai-loading" style="display:none; text-align:center; padding:30px 0;">
+            <i class="fa-solid fa-circle-notch fa-spin fa-3x" style="color:var(--primary); margin-bottom:15px;"></i>
+            <h4 style="color:white; margin:0;">Analyzing Vehicle Data...</h4>
+            <p style="color:var(--text-gray); font-size:0.85rem;">Matching symptoms with database...</p>
+        </div>
+
+        <div id="ai-result" style="display:none;">
+            <div style="background:rgba(16,185,129,0.1); border:1px solid var(--success); border-radius:12px; padding:20px; margin-bottom:20px;">
+                <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+                    <h5 style="color:var(--success); margin:0; font-size:0.9rem; text-transform:uppercase; letter-spacing:1px; font-weight:700;">Diagnosis Found</h5>
+                    <span id="result-severity" class="status-badge" style="background:rgba(245,158,11,0.2); color:#fbbf24;">MEDIUM</span>
+                </div>
+                <h3 id="result-problem" style="color:white; margin:0; font-size:1.4rem;">--</h3>
+                <div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(16,185,129,0.3); display:flex; justify-content:space-between;">
+                    <span style="color:var(--text-gray); font-size:0.9rem;">Est. Repair Cost</span>
+                    <span id="result-cost" style="color:white; font-weight:700; font-size:1.1rem;">--</span>
+                </div>
+            </div>
+            
+            <p id="result-suggestion" style="color:var(--text-gray); font-size:0.9rem; line-height:1.5; margin-bottom:25px; padding:0 10px;">--</p>
+
+            <div style="display:flex; gap:10px;">
+                <a href="{% url 'book_service' %}" class="btn-sos" style="background:var(--primary); box-shadow:none; animation:none; text-decoration:none; flex:1;">Book Repair</a>
+                <button onclick="resetAI()" style="flex:1; background:transparent; border:1px solid var(--glass-border); color:var(--text-gray); border-radius:12px; cursor:pointer;">New Search</button>
+            </div>
+        </div>
+
+        <button style="position:absolute; top:20px; right:20px; background:none; border:none; color:var(--text-gray); font-size:1.2rem; cursor:pointer;" onclick="closeModal('ai')">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-sos">
+    <div class="modal-box" style="border-color:var(--accent);">
+        <h2 style="color:var(--accent); text-align:center; font-size:2rem; margin-top:0;">EMERGENCY</h2>
+        <p style="text-align:center; color:white; margin-bottom:20px;">
+            Are you sure? This will broadcast a distress signal to <br><b>Technicians near {{ user.district }}</b>.
+        </p>
+        <form action="{% url 'book_service' %}" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="service_type" value="emergency">
+            <input type="hidden" name="description" value="EMERGENCY SOS BUTTON TRIGGERED">
+            <input type="hidden" name="location" value="GPS Signal Locked (Mobile)"> 
+            {% if vehicles %}
+                <input type="hidden" name="vehicle" value="{{ vehicles.0.id }}">
+            {% endif %}
+            <div style="display:flex; gap:15px;">
+                <button type="submit" class="btn-sos">CONFIRM SOS</button>
+                <button type="button" class="btn-sos" style="background:#334155; box-shadow:none; animation:none;" onclick="closeModal('sos')">CANCEL</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+<script>
+    function changeVehicleHealth(vehicleId) {
+        const slides = document.querySelectorAll('.vehicle-health-slide');
+        slides.forEach(slide => slide.style.display = 'none');
+        
+        const selectedSlide = document.getElementById('health-slide-' + vehicleId);
+        if (selectedSlide) {
+            selectedSlide.style.display = 'block';
+        }
+    }
+
+    function openModal(id) { document.getElementById('modal-' + id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById('modal-' + id).style.display = 'none'; }
+    window.onclick = function(event) { if (event.target.classList.contains('modal-overlay')) { event.target.style.display = "none"; } }
+
+    const diagnosisDB = {
+        'Engine': {
+            'Noise': { problem: 'Rod Knock / Worn Belt', severity: 'Critical', cost: '₹5,000+', suggestion: 'Immediate inspection required. Do not drive long distances.' },
+            'Smoke': { problem: 'Oil Leak / Gasket Failure', severity: 'High', cost: '₹8,000+', suggestion: 'Check oil levels. Engine overheating risk.' },
+            'PowerLoss': { problem: 'Spark Plugs / Fuel Injector', severity: 'Medium', cost: '₹2,500+', suggestion: 'Needs general tuning or part replacement.' },
+            'Leak': { problem: 'Coolant/Oil Leak', severity: 'High', cost: '₹3,000+', suggestion: 'Check under vehicle for puddles.' },
+            'WarningLight': { problem: 'Sensor Malfunction', severity: 'Low', cost: '₹1,500', suggestion: 'OBD scanning required.' }
+        },
+        'Brakes': {
+            'Noise': { problem: 'Worn Brake Pads', severity: 'High', cost: '₹2,000+', suggestion: 'Replace pads to avoid rotor damage.' },
+            'Vibration': { problem: 'Warped Rotors', severity: 'Medium', cost: '₹4,000+', suggestion: 'Brake discs need resurfacing.' },
+            'Leak': { problem: 'Brake Fluid Line', severity: 'Critical', cost: '₹2,500+', suggestion: 'Do not drive! Brakes may fail.' }
+        },
+        'Electrical': {
+            'PowerLoss': { problem: 'Dead Battery / Alternator', severity: 'High', cost: '₹4,000+', suggestion: 'Jump start may work temporarily.' },
+            'WarningLight': { problem: 'Fuse / Short Circuit', severity: 'Low', cost: '₹500+', suggestion: 'Check fuse box.' }
+        },
+        'Suspension': {
+            'Noise': { problem: 'Worn Struts / Bushings', severity: 'Medium', cost: '₹5,000+', suggestion: 'Ride quality compromised.' }
+        },
+        'AC': {
+            'PowerLoss': { problem: 'Low Refrigerant Gas', severity: 'Low', cost: '₹1,200', suggestion: 'AC Gas top-up needed.' }
+        }
+    };
+
+    function runAIDiagnosis() {
+        const comp = document.getElementById('ai-component').value;
+        const symp = document.getElementById('ai-symptom').value;
+
+        if (!comp || !symp) { alert("Please select both Component and Symptom."); return; }
+
+        document.getElementById('ai-input-section').style.display = 'none';
+        document.getElementById('ai-loading').style.display = 'block';
+
+        setTimeout(() => {
+            document.getElementById('ai-loading').style.display = 'none';
+            document.getElementById('ai-result').style.display = 'block';
+
+            let res = diagnosisDB[comp] && diagnosisDB[comp][symp];
+            if (!res) res = { problem: 'Complex Issue', severity: 'Unknown', cost: 'Inspection Req', suggestion: 'Professional diagnosis recommended.' };
+
+            document.getElementById('result-problem').innerText = res.problem;
+            document.getElementById('result-cost').innerText = res.cost;
+            document.getElementById('result-suggestion').innerText = res.suggestion;
+
+            const badge = document.getElementById('result-severity');
+            badge.innerText = res.severity;
+            
+            if(res.severity === 'Critical') { badge.style.background = 'rgba(239, 68, 68, 0.2)'; badge.style.color = '#fca5a5'; }
+            else if(res.severity === 'High') { badge.style.background = 'rgba(245, 158, 11, 0.2)'; badge.style.color = '#fbbf24'; }
+            else { badge.style.background = 'rgba(59, 130, 246, 0.2)'; badge.style.color = '#93c5fd'; }
+
+        }, 1500);
+    }
+
+    function resetAI() {
+        document.getElementById('ai-result').style.display = 'none';
+        document.getElementById('ai-input-section').style.display = 'block';
+        document.getElementById('ai-component').selectedIndex = 0;
+        document.getElementById('ai-symptom').selectedIndex = 0;
+    }
+
+    function updateStatus(level) {
+        // Implementation for simulation buttons (if needed)
+    }
+
+    // --- MAP ROUTING LOGIC WITH TURN-BY-TURN PATH ---
+    document.addEventListener("DOMContentLoaded", function() {
+        var mapElement = document.getElementById('trackMap');
+        
+        if(mapElement) {
+            var rawLoc = document.getElementById('locationData').getAttribute('data-location');
+            var userLat = 9.9312; // Default
+            var userLng = 76.2673;
+
+            var gpsMatch = rawLoc && rawLoc.match(/\[GPS: ([\d.-]+), ([\d.-]+)\]/);
+            if (gpsMatch) { userLat = parseFloat(gpsMatch[1]); userLng = parseFloat(gpsMatch[2]); }
+
+            // Simulated Technician location
+            var techLat = userLat + 0.015; 
+            var techLng = userLng + 0.015;
+
+            var map = L.map('trackMap').setView([userLat, userLng], 13);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© CARTO', subdomains: 'abcd', maxZoom: 19
+            }).addTo(map);
+
+            var UserIcon = L.divIcon({
+                className: 'custom-div-icon',
+                html: "<div style='background-color:#3b82f6;' class='marker-pin'></div><i class='fa-solid fa-house' style='position:absolute; top:-10px; left:-5px; color:white; font-size:12px;'></i>",
+                iconSize: [30, 42], iconAnchor: [15, 42]
+            });
+            var TechIcon = L.divIcon({
+                className: 'custom-div-icon',
+                html: "<div style='background-color:#10b981;' class='marker-pin tech-pin'></div><i class='fa-solid fa-motorcycle' style='position:absolute; top:-10px; left:-5px; color:white; font-size:12px;'></i>",
+                iconSize: [30, 42], iconAnchor: [15, 42]
+            });
+
+            // Turn-by-turn route using Leaflet Routing Machine
+            L.Routing.control({
+                waypoints: [
+                    L.latLng(techLat, techLng), // Technician Start
+                    L.latLng(userLat, userLng)  // User Destination
+                ],
+                createMarker: function(i, wp, nWps) {
+                    return L.marker(wp.latLng, {
+                        icon: i === 0 ? TechIcon : UserIcon
+                    });
+                },
+                lineOptions: {
+                    styles: [{color: '#3b82f6', weight: 4, opacity: 0.8}]
+                },
+                show: false, 
+                addWaypoints: false,
+                draggableWaypoints: false,
+                fitSelectedRoutes: true
+            }).addTo(map);
+        }
+    });
+</script>
+
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+/* --- THEME VARIABLES --- */
+:root {
+    --bg-deep: #030014;
+    --primary-glow: #7000ff;
+    --secondary-glow: #00f0ff;
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --text-muted: #94a3b8;
+    --font-tech: 'Rajdhani', sans-serif;
+    --font-body: 'Outfit', sans-serif;
+}
+
+/* --- BACKGROUND WRAPPER --- */
+.login-wrapper {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    background-image: 
+        linear-gradient(rgba(3, 0, 20, 0.85), rgba(3, 0, 20, 0.95)),
+        url('https://images.unsplash.com/photo-1494976388531-d1058494cdd8?q=80&w=2070&auto=format&fit=crop');
+    background-size: cover; background-position: center;
+}
+
+/* --- LOGIN CARD --- */
+.login-card {
+    width: 100%; max-width: 850px;
+    height: 500px; /* Fixed height ensures layout stability */
+    display: grid; grid-template-columns: 1fr 1fr;
+    background: rgba(15, 23, 35, 0.9);
+    backdrop-filter: blur(25px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+}
+
+/* --- LEFT SIDE: VISUAL --- */
+.login-visual-side {
+    background: url('https://images.unsplash.com/photo-1617788138017-80ad40651399?q=80&w=2070&auto=format&fit=crop') center/cover;
+    position: relative;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 40px;
+}
+.visual-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, #030014 10%, rgba(112, 0, 255, 0.3) 100%);
+}
+.visual-content { position: relative; z-index: 2; }
+.visual-content h3 { font-size: 24px; color: white; margin-bottom: 5px; font-weight: 700; }
+.visual-content p { color: rgba(255,255,255,0.7); font-size: 13px; line-height: 1.4; }
+
+/* --- RIGHT SIDE: FORM --- */
+.login-form-side {
+    padding: 40px;
+    display: flex; flex-direction: column; justify-content: center; /* Vertical Center */
+}
+
+.login-header { margin-bottom: 30px; text-align: center; }
+.login-header h2 { font-size: 26px; color: white; margin-bottom: 5px; font-weight: 700; }
+.login-header p { color: var(--text-muted); font-size: 13px; }
+
+/* --- INPUTS ALIGNMENT FIX --- */
+.input-group { 
+    position: relative; 
+    margin-bottom: 20px; 
+    width: 100%;
+}
+
+.form-control {
+    width: 100%;
+    height: 48px; /* Standard comfortable touch target */
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--glass-border);
+    color: #ffffff !important; /* Forces text to be consistently visible white */
+    padding: 0 15px 0 45px; /* Left padding creates space for icon */
+    border-radius: 8px; 
+    font-family: var(--font-body); 
+    font-size: 14px;
+    transition: 0.3s;
+    outline: none;
+    box-sizing: border-box; /* Ensures padding doesn't affect width */
+}
+
+/* FIX: Stops browser autofill from making text invisible in dark mode */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #0a0f18 inset !important;
+    -webkit-text-fill-color: #ffffff !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+.form-control:focus {
+    border-color: var(--primary-glow);
+    background: rgba(112, 0, 255, 0.05);
+    box-shadow: 0 0 15px rgba(112, 0, 255, 0.1);
+}
+
+/* Icon Centering */
+.input-icon {
+    position: absolute; 
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 45px; /* Fixed width matching padding-left */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted); 
+    font-size: 16px; 
+    transition: 0.3s;
+    pointer-events: none;
+}
+.form-control:focus + .input-icon { color: var(--primary-glow); }
+
+/* --- BUTTON ALIGNMENT --- */
+.btn-login {
+    width: 100%; height: 48px;
+    margin-top: 10px;
+    background: linear-gradient(90deg, transparent, rgba(112, 0, 255, 0.2), transparent);
+    border: 1px solid var(--primary-glow);
+    color: white; font-family: var(--font-tech); font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px; font-size: 14px;
+    cursor: pointer; transition: 0.3s;
+    display: flex; align-items: center; justify-content: center;
+}
+.btn-login:hover {
+    background: var(--primary-glow);
+    box-shadow: 0 0 30px rgba(112, 0, 255, 0.4);
+}
+
+.login-link { text-align: center; margin-top: 20px; font-size: 13px; color: var(--text-muted); }
+.login-link a { color: var(--secondary-glow); text-decoration: none; font-weight: 600; }
+
+/* --- RESPONSIVE FIX --- */
+@media(max-width: 850px) {
+    .login-card { 
+        grid-template-columns: 1fr; 
+        max-width: 400px; 
+        height: auto; 
+        border-radius: 16px;
+    }
+    .login-visual-side { display: none; }
+    .login-form-side { padding: 40px 30px; }
+}
+</style>
+
+<div class="login-wrapper">
+    <div class="login-card">
+        
+        <div class="login-visual-side">
+            <div class="visual-overlay"></div>
+            <div class="visual-content">
+                <h3>System Access</h3>
+                <p>Manage repairs, track technicians, and view diagnostics in real-time.</p>
+            </div>
+        </div>
+
+        <div class="login-form-side">
+            <div class="login-header">
+                <h2>Welcome Back</h2>
+                <p>Enter credentials to unlock terminal.</p>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                
+                <script>
+                    document.addEventListener("DOMContentLoaded", function() {
+                        document.querySelectorAll('input').forEach(input => {
+                            input.classList.add('form-control');
+                            if(input.type === 'password') input.placeholder = "Password";
+                            else input.placeholder = "Username";
+                        });
+                    });
+                </script>
+
+                <div class="input-group">
+                    {{ form.username }}
+                    <div class="input-icon"><i class="fas fa-user"></i></div>
+                </div>
+                
+                <div class="input-group">
+                    {{ form.password }}
+                    <div class="input-icon"><i class="fas fa-lock"></i></div>
+                </div>
+
+                {% if form.errors %}
+                <div style="margin-bottom: 15px; text-align: center;">
+                    <p style="color: #ef4444; font-size: 12px; margin: 0;">
+                        <i class="fas fa-circle-exclamation"></i> Invalid Username or Password
+                    </p>
+                </div>
+                {% endif %}
+
+                <button type="submit" class="btn-login">
+                    Login
+                </button>
+            </form>
+
+            <div class="login-link">
+                New User? <a href="{% url 'register' %}">Create Account</a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,52 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <style>
+        body { font-family: Helvetica, sans-serif; color: #333; }
+        .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+        .title { font-size: 24px; font-weight: bold; color: #2c3e50; }
+        .details-box { margin-bottom: 30px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background-color: #eee; text-align: left; padding: 8px; }
+        td { padding: 8px; border-bottom: 1px solid #ddd; }
+        .total { text-align: right; font-size: 18px; font-weight: bold; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">CarCare Service Invoice</div>
+        <p>Invoice #{{ service.id }} | Date: {{ date|date:"F d, Y" }}</p>
+    </div>
+
+    <div class="details-box">
+        <strong>Customer:</strong> {{ customer.username }}<br>
+        <strong>Vehicle:</strong> {{ service.vehicle.model }} ({{ service.vehicle.number_plate }})<br>
+        <strong>Technician:</strong> {{ tech.username|default:"Assigned Team" }}
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Cost</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ service.service_type }} - {{ service.description }}</td>
+                <td>{{ service.status }}</td>
+                <td>Rs. {{ service.total_cost|default:"0.00" }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="total">
+        Total Amount: Rs. {{ service.total_cost|default:"0.00" }}
+    </div>
+
+    <p style="margin-top:50px; text-align:center; font-size:12px; color:#777;">
+        Thank you for choosing CarCare. This is a computer-generated invoice.
+    </p>
+</body>
+</html>

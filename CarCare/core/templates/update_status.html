@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+    /* --- THEME VARIABLES --- */
+    :root {
+        --primary: #3b82f6;
+        --success: #10b981;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+        --dark-bg: #0f172a;
+        --text-white: #f8fafc;
+        --text-gray: #94a3b8;
+        --glass-panel: rgba(15, 23, 42, 0.92); /* Dark Glass */
+        --border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    /* INLINE BACKGROUND SETUP */
+    .update-wrapper {
+        min-height: 100vh;
+        /* High-quality Workshop Background */
+        background: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.95)), 
+                    url('https://images.unsplash.com/photo-1487754180477-db33c3454558?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80') no-repeat center center fixed;
+        background-size: cover;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        font-family: 'Outfit', sans-serif;
+        color: var(--text-white);
+    }
+
+    /* --- CARD DESIGN --- */
+    .update-card {
+        width: 100%;
+        max-width: 550px;
+        background: var(--glass-panel);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid var(--border-color);
+        border-radius: 24px;
+        padding: 40px;
+        box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.7);
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Animated Top Border */
+    .update-card::after {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+        background: linear-gradient(90deg, var(--primary), var(--success));
+    }
+
+    /* --- HEADER --- */
+    .card-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .card-header h3 { margin: 0; font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px; }
+    .card-header p { color: var(--text-gray); margin-top: 5px; font-size: 0.95rem; }
+
+    /* --- JOB SUMMARY BOX --- */
+    .job-summary {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 16px;
+        padding: 25px;
+        margin-bottom: 30px;
+        border: 1px solid var(--border-color);
+    }
+
+    .summary-row {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 12px;
+        font-size: 0.95rem;
+    }
+    .summary-row:last-child { margin-bottom: 0; }
+    
+    .lbl { color: var(--text-gray); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; }
+    .val { font-weight: 600; color: white; }
+
+    /* Status Badge Styling */
+    .status-badge-display {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 6px 12px; border-radius: 8px;
+        font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+        background: rgba(59, 130, 246, 0.15); color: var(--primary);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    /* --- FORM CONTROLS --- */
+    .form-label {
+        display: block; margin-bottom: 12px; font-weight: 600; 
+        font-size: 0.9rem; color: var(--text-gray); text-transform: uppercase;
+    }
+
+    .custom-select {
+        width: 100%;
+        padding: 16px 20px;
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        color: white;
+        font-size: 1rem;
+        font-family: inherit;
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 20px center;
+        transition: all 0.3s ease;
+    }
+    .custom-select:focus {
+        outline: none; border-color: var(--primary);
+        background-color: rgba(0, 0, 0, 0.4);
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    }
+    
+    option { background-color: var(--dark-bg); color: white; padding: 15px; }
+
+    /* --- ACTION BUTTONS --- */
+    .btn-submit {
+        width: 100%;
+        padding: 18px;
+        margin-top: 30px;
+        background: linear-gradient(135deg, var(--success), #059669);
+        border: none;
+        border-radius: 14px;
+        color: white;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.3s;
+        box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4);
+        display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .btn-submit:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 30px -5px rgba(16, 185, 129, 0.5);
+    }
+
+    .btn-back {
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        margin-top: 25px;
+        color: var(--text-gray); text-decoration: none; font-size: 0.95rem; font-weight: 500;
+        transition: 0.2s;
+    }
+    .btn-back:hover { color: white; }
+
+</style>
+
+<div class="update-wrapper">
+    <div class="update-card">
+        
+        <div class="card-header">
+            <h3><i class="fas fa-sliders-h text-primary"></i> Update Status</h3>
+            <p>Managing Request #{{ req.id }}</p>
+        </div>
+
+        <div class="job-summary">
+            <div class="summary-row">
+                <span class="lbl">Customer</span>
+                <span class="val">{{ req.customer.username|title }}</span>
+            </div>
+            <div class="summary-row">
+                <span class="lbl">Contact</span>
+                <span class="val">{{ req.customer.phone }}</span>
+            </div>
+            <div class="summary-row">
+                <span class="lbl">Vehicle</span>
+                <span class="val">{{ req.vehicle }}</span>
+            </div>
+            <div class="summary-row" style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.1);">
+                <span class="lbl">Current Status</span>
+                <span class="status-badge-display">
+                    <i class="fas fa-circle" style="font-size:8px; margin-right:5px;"></i> {{ req.status|upper }}
+                </span>
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label class="form-label" for="statusSelect">Select New Status</label>
+                <select name="status" id="statusSelect" class="custom-select">
+                    <option value="" disabled selected>Choose action...</option>
+                    
+                    <optgroup label="Progress Workflow">
+                        <option value="in_progress">🚀 Accept & Start Job</option>
+                        <option value="completed">✅ Mark as Completed</option>
+                    </optgroup>
+                    
+                    <optgroup label="Exceptions">
+                        <option value="cancelled">❌ Reject / Cancel</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-submit">
+                Confirm Update <i class="fas fa-arrow-right"></i>
+            </button>
+        </form>
+
+        <a href="{% url 'dashboard' %}" class="btn-back">
+            <i class="fas fa-chevron-left"></i> Back to Console
+        </a>
+
+    </div>
+</div>
+{% endblock %}

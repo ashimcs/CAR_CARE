@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+<style>
+    body { background-color: #0f172a; color: white; }
+    
+    .chat-container {
+        max-width: 600px; margin: 20px auto; display: flex; flex-direction: column;
+        height: 85vh; background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 20px; overflow: hidden;
+    }
+
+    /* Header */
+    .chat-header {
+        padding: 15px; background: rgba(30, 41, 59, 0.9); border-bottom: 1px solid rgba(255,255,255,0.1);
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .back-btn { color: #94a3b8; text-decoration: none; font-size: 1.2rem; }
+
+    /* Messages Area */
+    .chat-window {
+        flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;
+    }
+
+    .msg { max-width: 75%; padding: 10px 15px; border-radius: 15px; position: relative; font-size: 0.95rem; }
+    .msg img { max-width: 100%; border-radius: 10px; margin-top: 5px; display: block; }
+    
+    /* Sent by Me */
+    .sent { align-self: flex-end; background: #3b82f6; color: white; border-bottom-right-radius: 2px; }
+    
+    /* Received */
+    .received { align-self: flex-start; background: #1e293b; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.1); border-bottom-left-radius: 2px; }
+
+    .meta { font-size: 0.65rem; opacity: 0.7; text-align: right; margin-top: 4px; display: block; }
+
+    /* Footer / Input */
+    .chat-footer {
+        padding: 15px; background: rgba(15, 23, 42, 0.9); border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .chat-form { display: flex; gap: 10px; align-items: center; }
+    
+    .chat-input {
+        flex: 1; background: #1e293b; border: none; padding: 12px; border-radius: 30px; color: white; outline: none;
+    }
+    
+    /* Image Upload Styling */
+    .file-upload { position: relative; cursor: pointer; color: #94a3b8; font-size: 1.5rem; padding: 5px; transition: 0.3s; }
+    .file-upload:hover { color: #3b82f6; }
+    #id_image { display: none; } /* Hide default file input */
+
+    .send-btn {
+        background: #3b82f6; color: white; border: none; width: 45px; height: 45px;
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: 0.3s;
+    }
+    .send-btn:hover { background: #2563eb; transform: scale(1.1); }
+</style>
+
+<div class="chat-container">
+    <div class="chat-header">
+        <div style="display:flex; align-items:center; gap:15px;">
+            <a href="{% url 'dashboard' %}" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+            <div>
+                {% if user == service.vehicle.owner %}
+                    <h3 style="margin:0; font-size:1.1rem;">{{ service.technician.username|default:"Technician"|title }}</h3>
+                    <span style="font-size:0.8rem; color:#10b981;">● Online</span>
+                {% else %}
+                    <h3 style="margin:0; font-size:1.1rem;">{{ service.vehicle.owner.username|title }}</h3>
+                    <span style="font-size:0.8rem; color:#f59e0b;">Customer</span>
+                {% endif %}
+            </div>
+        </div>
+        <a href="tel:{% if user == service.vehicle.owner %}{{ service.technician.phone }}{% else %}{{ service.vehicle.owner.phone }}{% endif %}" style="color:#10b981; font-size:1.2rem;"><i class="fas fa-phone"></i></a>
+    </div>
+
+    <div class="chat-window" id="chatBox">
+        {% for msg in messages %}
+            <div class="msg {% if msg.sender == user %}sent{% else %}received{% endif %}">
+                {% if msg.message %}
+                    {{ msg.message }}
+                {% endif %}
+                
+                {% if msg.image %}
+                    <img src="{{ msg.image.url }}" alt="Attachment">
+                {% endif %}
+                
+                <span class="meta">{{ msg.created_at|date:"H:i" }}</span>
+            </div>
+        {% empty %}
+            <div style="text-align:center; color:#94a3b8; margin-top:50px;">
+                <p>No messages yet. Send a photo of the issue!</p>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="chat-footer">
+        <form method="POST" enctype="multipart/form-data" class="chat-form">
+            {% csrf_token %}
+            
+            <label for="id_image" class="file-upload">
+                <i class="fas fa-paperclip"></i>
+            </label>
+            {{ form.image }} {{ form.message }} <button type="submit" class="send-btn">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Auto-scroll to bottom of chat
+    var chatBox = document.getElementById("chatBox");
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    // Show preview or alert when file is selected
+    document.getElementById('id_image').onchange = function() {
+        if(this.files[0]) {
+            document.querySelector('.chat-input').placeholder = "Image selected: " + this.files[0].name;
+            document.querySelector('.file-upload').style.color = "#10b981"; // Turn clip green
+        }
+    };
+</script>
+{% endblock %}
